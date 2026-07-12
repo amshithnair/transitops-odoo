@@ -102,6 +102,22 @@ Write-Host "7. Testing Predictive Maintenance Forecast..." -ForegroundColor Yell
 $forecast = Invoke-RestMethod -Uri "$API_URL/maintenance/forecast" -Method Get -Headers $headers
 Write-Host "Forecast generated for $($forecast.Length) vehicles." -ForegroundColor Green
 
+# 8. Digital Vehicle Passport
+Write-Host "8. Testing Digital Vehicle Passport..." -ForegroundColor Yellow
+try {
+    $passport = Invoke-RestMethod -Uri "$API_URL/vehicles/$($vehicle.id)/passport" -Method Get -Headers $headers
+    Write-Host "Passport successfully retrieved!" -ForegroundColor Green
+    Write-Host "Vehicle Reg: $($passport.vehicle.registration_number)" -ForegroundColor Green
+    Write-Host "Total trips: $($passport.summary.total_trips)" -ForegroundColor Green
+    Write-Host "Timeline events: $($passport.compliance_timeline.Length)" -ForegroundColor Green
+    if ($passport.vehicle.documents.Length -gt 0) {
+        Write-Host "Documents verified: $($passport.vehicle.documents[0].label)" -ForegroundColor Green
+    }
+} catch {
+    Write-Host "ERROR on Digital Passport Retrieval: $($_.Exception.Message)" -ForegroundColor Red
+    throw
+}
+
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host " All API Tests Passed Successfully! " -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Cyan

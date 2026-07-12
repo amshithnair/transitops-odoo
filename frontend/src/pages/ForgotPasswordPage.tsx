@@ -11,6 +11,7 @@ export const ForgotPasswordPage: React.FC = () => {
   const [resetCode, setResetCode] = useState('');
   
   const [error, setError] = useState<string | null>(null);
+
   const [submitting, setSubmitting] = useState(false);
   
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ export const ForgotPasswordPage: React.FC = () => {
     try {
       const res = await client.post('/auth/verify-otp', { email, otp });
       setResetCode(res.data.reset_code);
+
       setStep(3);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Invalid OTP.');
@@ -50,6 +52,7 @@ export const ForgotPasswordPage: React.FC = () => {
     setSubmitting(true);
     try {
       await client.post('/auth/reset-password', { email, reset_code: resetCode, new_password: newPassword });
+
       navigate('/login');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to reset password.');
@@ -114,6 +117,7 @@ export const ForgotPasswordPage: React.FC = () => {
             <h1>Verify OTP</h1>
             <div className="lf-sub">Enter the 6-digit code sent to {email}</div>
             {error && <div className="alert alert-danger">{error}</div>}
+
             
             <div className="field">
               <label>OTP Code</label>

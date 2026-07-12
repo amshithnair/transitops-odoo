@@ -3,7 +3,6 @@ import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../lib/useData';
 import { useSort } from '../lib/useSort';
-import { demoFuel, demoExpenses, demoVehicles } from '../lib/demo';
 import type { FuelLog, Expense, Vehicle } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { fmtNum, fmtDate } from '../lib/status';
@@ -15,12 +14,12 @@ type ModalKind = 'fuel' | 'expense' | null;
 export const FuelExpensePage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'fuel');
-  const { data: fuelData, setData: setFuel } = useData<FuelLog[]>('/fuel-logs', demoFuel);
-  const { data: expData, setData: setExp } = useData<Expense[]>('/expenses', demoExpenses);
-  const { data: vehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const fuelRows = Array.isArray(fuelData) ? fuelData : demoFuel;
-  const expRows = Array.isArray(expData) ? expData : demoExpenses;
-  const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
+  const { data: fuelData, setData: setFuel } = useData<FuelLog[]>('/fuel-logs', []);
+  const { data: expData, setData: setExp } = useData<Expense[]>('/expenses', []);
+  const { data: vehicles } = useData<Vehicle[]>('/vehicles', []);
+  const fuelRows = Array.isArray(fuelData) ? fuelData : [];
+  const expRows = Array.isArray(expData) ? expData : [];
+  const vehRows = Array.isArray(vehicles) ? vehicles : [];
   const fuelSort = useSort<FuelLog>(fuelRows);
   const expSort = useSort<Expense>(expRows);
 
@@ -37,7 +36,7 @@ export const FuelExpensePage: React.FC = () => {
     e.preventDefault();
     setFuel([{ ...f, id: `f${Date.now()}` }, ...fuelRows]);
     setModal(null);
-    try { await client.post('/fuel-logs', f); } catch { /* offline demo */ }
+    try { await client.post('/fuel-logs', f); } catch { /* ignore */ }
     setF({ id: '', vehicle_label: '', date: new Date().toISOString().slice(0, 10), liters: 0, fuel_cost: 0 });
   };
 
@@ -46,7 +45,7 @@ export const FuelExpensePage: React.FC = () => {
     const total = ex.toll + ex.other_misc + ex.maintenance_cost;
     setExp([{ ...ex, total, id: `e${Date.now()}` }, ...expRows]);
     setModal(null);
-    try { await client.post('/expenses', { ...ex, total }); } catch { /* offline demo */ }
+    try { await client.post('/expenses', { ...ex, total }); } catch { /* ignore */ }
     setEx({ id: '', trip_code: '', vehicle_label: '', toll: 0, other_misc: 0, maintenance_cost: 0, total: 0 });
   };
 

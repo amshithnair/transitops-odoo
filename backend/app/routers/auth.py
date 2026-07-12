@@ -140,7 +140,11 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
                  f"Do not share this with anyone.",
         )
 
-    # Always return success to avoid leaking user existence
+        # Always return success to avoid leaking user existence, but for the hackathon demo, we return the OTP!
+        return MessageResponse(
+            message=f"If a user with this email exists, they will receive a password reset link. (DEMO OTP: {otp})"
+        )
+
     return MessageResponse(
         message="If a user with this email exists, they will receive a password reset link."
     )

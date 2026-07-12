@@ -9,7 +9,7 @@ from datetime import datetime, date
 
 from sqlalchemy import (
     String, Float, Integer, DateTime, Date, Text, ForeignKey, Enum, Boolean,
-    UniqueConstraint,
+    UniqueConstraint, JSON,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
@@ -18,6 +18,7 @@ from app.database import Base
 
 
 # ──────────────────────────── Enums ────────────────────────────
+# Note: Keep the rest of the Enums as is. Lines 22+ continue below.
 
 class UserRole(str, enum.Enum):
     fleet_manager = "fleet_manager"
@@ -109,6 +110,13 @@ class Vehicle(Base):
     )
     region: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Documents & Compliance
+    documents: Mapped[list | None] = mapped_column(JSON, nullable=True, default=[])
+    insurance_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
+    rc_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
+    puc_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
+    fitness_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     # Relationships
     trips: Mapped[list["Trip"]] = relationship(back_populates="vehicle")

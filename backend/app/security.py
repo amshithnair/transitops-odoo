@@ -38,15 +38,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def validate_password_strength(password: str) -> None:
     """
-    Validate password complexity: min 8 chars, at least 1 uppercase, 1 digit.
-    Raises ValueError with a message if validation fails.
+    Validate password complexity: min 6 chars for hackathon.
     """
-    if len(password) < 8:
-        raise ValueError("Password must be at least 8 characters long.")
-    if not re.search(r'[A-Z]', password):
-        raise ValueError("Password must contain at least 1 uppercase letter.")
-    if not re.search(r'[0-9]', password):
-        raise ValueError("Password must contain at least 1 digit.")
+    if len(password) < 6:
+        raise ValueError("Password must be at least 6 characters long.")
 
 
 # ──────────────────────────── JWT ────────────────────────────

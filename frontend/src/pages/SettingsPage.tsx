@@ -70,10 +70,10 @@ export const SettingsPage: React.FC = () => {
                 <tr><th>Role</th>{SECTION_LABELS.map((s) => <th key={s.key}>{s.label}</th>)}</tr>
               </thead>
               <tbody>
-                {ALL_ROLES.map((role) => (
-                  <tr key={role}>
-                    <td>{ROLE_LABELS[role]}</td>
-                    {SECTION_LABELS.map((s) => <td key={s.key}>{mark(RBAC[role][s.key])}</td>)}
+                {ALL_ROLES.map((r) => (
+                  <tr key={r}>
+                    <td>{ROLE_LABELS[r]}</td>
+                    {SECTION_LABELS.map((s) => <td key={s.key}>{mark(RBAC[r][s.key])}</td>)}
                   </tr>
                 ))}
               </tbody>
@@ -110,6 +110,7 @@ export const SettingsPage: React.FC = () => {
           </table>
         </div>
       </div>
+
       <div className="card mt-16">
         <div className="card-head">
           <h3><IconUsers size={13} style={{ verticalAlign: -2, marginRight: 6 }} />User Management (Fleet Manager)</h3>

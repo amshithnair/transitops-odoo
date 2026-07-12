@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData, filterBy } from '../lib/useData';
 import { useSort } from '../lib/useSort';
-import { demoVehicles } from '../lib/demo';
 import type { Vehicle } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { fmtNum } from '../lib/status';
@@ -15,8 +15,8 @@ const blank = (): Vehicle => ({ id: '', registration_number: '', name_model: '',
 export const VehiclesPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'fleet');
-  const { data, loading, reload, setData } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const rows = Array.isArray(data) ? data : demoVehicles;
+  const { data, loading, reload, setData } = useData<Vehicle[]>('/vehicles', []);
+  const rows = Array.isArray(data) ? data : [];
 
   const [q, setQ] = useState('');
   const [type, setType] = useState('');
@@ -43,9 +43,6 @@ export const VehiclesPage: React.FC = () => {
     } catch (e2: unknown) {
       const r = e2 as { response?: { data?: { detail?: string } } };
       if (r.response) { setErr(r.response.data?.detail || 'Save failed.'); return; }
-      // offline demo: mutate locally
-      setData(form.id ? rows.map((v) => (v.id === form.id ? form : v)) : [...rows, { ...form, id: `v${Date.now()}` }]);
-      setForm(null);
     }
   };
 
@@ -86,7 +83,11 @@ export const VehiclesPage: React.FC = () => {
             <tbody>
               {sorted.map((v) => (
                 <tr key={v.id}>
-                  <td className="mono td-strong">{v.registration_number}</td>
+                  <td className="mono td-strong">
+                    <Link to={`/vehicles/${v.id}/passport`} className="link">
+                      {v.registration_number}
+                    </Link>
+                  </td>
                   <td>{v.name_model}</td>
                   <td>{v.type}</td>
                   <td>{fmtNum(v.max_load_capacity_kg)} kg</td>
