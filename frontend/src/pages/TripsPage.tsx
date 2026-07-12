@@ -24,7 +24,7 @@ export const TripsPage: React.FC = () => {
 
   // Dispatch-eligible pools (business rules): vehicles Available only; drivers Available + not expired
   const availVehicles = vehRows.filter((v) => v.status === 'Available');
-  const availDrivers = drvRows.filter((d) => d.status === 'Available' && !expiryInfo(d.license_expiry).expired);
+  const availDrivers = drvRows.filter((d) => d.status === 'Available' && d.safety_score >= 70 && !expiryInfo(d.license_expiry_date).expired);
 
   const [source, setSource] = useState('');
   const [dest, setDest] = useState('');

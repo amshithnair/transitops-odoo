@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { roleLabel, type Section } from '../lib/roles';
 import {
   IconDashboard, IconTruck, IconUsers, IconRoute, IconWrench, IconFuel,
-  IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconLogout,
+  IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconLogout, IconAI, IconMap
 } from './Icons';
 
 interface NavItem { path: string; label: string; icon: React.FC<{ size?: number }>; section?: Section; }
@@ -15,6 +15,8 @@ const NAV: NavItem[] = [
   { path: '/vehicles', label: 'Fleet', icon: IconTruck, section: 'fleet' },
   { path: '/drivers', label: 'Drivers', icon: IconUsers, section: 'drivers' },
   { path: '/trips', label: 'Trips', icon: IconRoute, section: 'trips' },
+  { path: '/dispatch', label: 'AI Dispatch', icon: IconAI, section: 'trips' },
+  { path: '/map', label: 'Fleet Map', icon: IconMap },
   { path: '/maintenance', label: 'Maintenance', icon: IconWrench, section: 'fleet' },
   { path: '/fuel-expense', label: 'Fuel & Expenses', icon: IconFuel, section: 'fuel' },
   { path: '/reports', label: 'Analytics', icon: IconChart, section: 'analytics' },

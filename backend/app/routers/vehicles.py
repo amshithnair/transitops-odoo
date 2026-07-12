@@ -7,11 +7,14 @@ Business Rules enforced:
 RBAC:
   fleet_manager — full CRUD
   all others    — read-only
+
+Enhanced with: search, pagination, fuel_type filter.
 """
 
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -24,15 +27,18 @@ router = APIRouter(prefix="/vehicles", tags=["Vehicles"])
 
 @router.get(
     "",
-    response_model=list[VehicleResponse],
     summary="List all vehicles",
-    description="Returns all vehicles. Supports optional filters by type, status, and region.",
+    description="Returns vehicles with optional filters, search, and pagination.",
     responses={401: {"description": "Not authenticated"}},
 )
 def list_vehicles(
     type: Optional[str] = Query(None, description="Filter by vehicle type"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by vehicle status"),
     region: Optional[str] = Query(None, description="Filter by region"),
+    fuel_type: Optional[str] = Query(None, description="Filter by fuel type"),
+    search: Optional[str] = Query(None, description="Search registration, model, manufacturer"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -43,7 +49,31 @@ def list_vehicles(
         query = query.filter(Vehicle.status == status_filter)
     if region:
         query = query.filter(Vehicle.region == region)
-    return query.order_by(Vehicle.created_at.desc()).all()
+    if fuel_type:
+        query = query.filter(Vehicle.fuel_type == fuel_type)
+    if search:
+        term = f"%{search}%"
+        query = query.filter(
+            or_(
+                Vehicle.registration_number.ilike(term),
+                Vehicle.name_model.ilike(term),
+                Vehicle.manufacturer.ilike(term),
+            )
+        )
+
+    total = query.count()
+    items = (
+        query.order_by(Vehicle.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return {
+        "items": [VehicleResponse.model_validate(v) for v in items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.get(

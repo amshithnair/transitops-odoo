@@ -13,6 +13,8 @@ import MaintenancePage from './pages/MaintenancePage';
 import FuelExpensePage from './pages/FuelExpensePage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
+import MapPage from './pages/MapPage';
+import DispatchPage from './pages/DispatchPage';
 
 const wrap = (el: React.ReactNode) => <Layout>{el}</Layout>;
 
@@ -30,8 +32,10 @@ const App: React.FC = () => (
           <Route path="/maintenance" element={wrap(<MaintenancePage />)} />
           <Route path="/drivers" element={wrap(<DriversPage />)} />
           <Route path="/trips" element={wrap(<TripsPage />)} />
+          <Route path="/dispatch" element={wrap(<DispatchPage />)} />
           <Route path="/fuel-expense" element={wrap(<FuelExpensePage />)} />
           <Route path="/reports" element={wrap(<ReportsPage />)} />
+          <Route path="/map" element={wrap(<MapPage />)} />
           <Route path="/settings" element={wrap(<SettingsPage />)} />
         </Route>
 

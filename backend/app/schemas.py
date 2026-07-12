@@ -15,6 +15,15 @@ from app.models import (
 )
 
 
+# ──────────────────────────── Pagination ────────────────────────────
+
+class PaginatedResponse(BaseModel):
+    items: list = []
+    total: int = 0
+    page: int = 1
+    page_size: int = 20
+
+
 # ──────────────────────────── Auth ────────────────────────────
 
 class UserRegister(BaseModel):
@@ -56,6 +65,14 @@ class VehicleCreate(BaseModel):
     acquisition_cost: float = Field(0.0, ge=0, examples=[45000.0])
     status: VehicleStatus = Field(VehicleStatus.Available, examples=[VehicleStatus.Available])
     region: Optional[str] = Field(None, examples=["North"])
+    manufacturer: Optional[str] = Field(None, examples=["Ford"])
+    fuel_type: Optional[str] = Field(None, examples=["Diesel"])
+    purchase_date: Optional[date_type] = Field(None, examples=["2024-01-15"])
+    insurance_expiry: Optional[date_type] = Field(None, examples=["2027-01-15"])
+    fitness_expiry: Optional[date_type] = Field(None, examples=["2027-06-30"])
+    puc_expiry: Optional[date_type] = Field(None, examples=["2026-12-31"])
+    latitude: Optional[float] = Field(None, examples=[23.0225])
+    longitude: Optional[float] = Field(None, examples=[72.5714])
 
 
 class VehicleUpdate(BaseModel):
@@ -67,6 +84,14 @@ class VehicleUpdate(BaseModel):
     acquisition_cost: Optional[float] = Field(None, ge=0, examples=[45000.0])
     status: Optional[VehicleStatus] = Field(None, examples=[VehicleStatus.Available])
     region: Optional[str] = Field(None, examples=["North"])
+    manufacturer: Optional[str] = Field(None, examples=["Ford"])
+    fuel_type: Optional[str] = Field(None, examples=["Diesel"])
+    purchase_date: Optional[date_type] = Field(None, examples=["2024-01-15"])
+    insurance_expiry: Optional[date_type] = Field(None, examples=["2027-01-15"])
+    fitness_expiry: Optional[date_type] = Field(None, examples=["2027-06-30"])
+    puc_expiry: Optional[date_type] = Field(None, examples=["2026-12-31"])
+    latitude: Optional[float] = Field(None, examples=[23.0225])
+    longitude: Optional[float] = Field(None, examples=[72.5714])
 
 
 class VehicleResponse(BaseModel):
@@ -79,6 +104,15 @@ class VehicleResponse(BaseModel):
     acquisition_cost: float
     status: VehicleStatus
     region: Optional[str]
+    manufacturer: Optional[str]
+    fuel_type: Optional[str]
+    purchase_date: Optional[date_type]
+    insurance_expiry: Optional[date_type]
+    fitness_expiry: Optional[date_type]
+    puc_expiry: Optional[date_type]
+    latitude: Optional[float]
+    longitude: Optional[float]
+    last_location_update: Optional[datetime]
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -92,6 +126,9 @@ class DriverCreate(BaseModel):
     license_category: str = Field(..., examples=["C"])
     license_expiry_date: date_type = Field(..., examples=["2026-12-31"])
     contact_number: Optional[str] = Field(None, examples=["+1-555-0142"])
+    email: Optional[str] = Field(None, examples=["alex@transitops.com"])
+    experience_years: Optional[int] = Field(None, ge=0, examples=[5])
+    assigned_vehicle_id: Optional[str] = Field(None, examples=["uuid-of-vehicle"])
     safety_score: float = Field(100.0, ge=0, le=100, examples=[95.0])
     status: DriverStatus = Field(DriverStatus.Available, examples=[DriverStatus.Available])
 
@@ -102,6 +139,9 @@ class DriverUpdate(BaseModel):
     license_category: Optional[str] = Field(None, examples=["C"])
     license_expiry_date: Optional[date_type] = Field(None, examples=["2026-12-31"])
     contact_number: Optional[str] = Field(None, examples=["+1-555-0142"])
+    email: Optional[str] = Field(None, examples=["alex@transitops.com"])
+    experience_years: Optional[int] = Field(None, ge=0, examples=[5])
+    assigned_vehicle_id: Optional[str] = Field(None, examples=["uuid-of-vehicle"])
     safety_score: Optional[float] = Field(None, ge=0, le=100, examples=[95.0])
     status: Optional[DriverStatus] = Field(None, examples=[DriverStatus.Available])
 
@@ -113,6 +153,10 @@ class DriverResponse(BaseModel):
     license_category: str
     license_expiry_date: date_type
     contact_number: Optional[str]
+    email: Optional[str]
+    experience_years: Optional[int]
+    assigned_vehicle_id: Optional[str]
+    assigned_vehicle_registration: Optional[str] = None
     safety_score: float
     status: DriverStatus
     created_at: datetime
@@ -197,6 +241,7 @@ class MaintenanceResponse(BaseModel):
 
 class FuelLogCreate(BaseModel):
     vehicle_id: str = Field(..., examples=["uuid-of-vehicle"])
+    driver_id: Optional[str] = Field(None, examples=["uuid-of-driver"])
     trip_id: Optional[str] = Field(None, examples=["uuid-of-trip"])
     liters: float = Field(..., gt=0, examples=[45.0])
     cost: float = Field(..., gt=0, examples=[67.50])
@@ -204,14 +249,27 @@ class FuelLogCreate(BaseModel):
     odometer_km: Optional[float] = Field(None, ge=0, examples=[15350.0])
 
 
+class FuelLogUpdate(BaseModel):
+    vehicle_id: Optional[str] = Field(None, examples=["uuid-of-vehicle"])
+    driver_id: Optional[str] = Field(None, examples=["uuid-of-driver"])
+    liters: Optional[float] = Field(None, gt=0, examples=[45.0])
+    cost: Optional[float] = Field(None, gt=0, examples=[67.50])
+    date: Optional[date_type] = Field(None, examples=["2026-01-15"])
+    odometer_km: Optional[float] = Field(None, ge=0, examples=[15350.0])
+
+
 class FuelLogResponse(BaseModel):
     id: str
     vehicle_id: str
+    driver_id: Optional[str]
     trip_id: Optional[str]
     liters: float
     cost: float
     date: date_type
     odometer_km: Optional[float]
+    vehicle_registration: Optional[str] = None
+    driver_name: Optional[str] = None
+    mileage_kmpl: Optional[float] = None
 
     model_config = {"from_attributes": True}
 
@@ -220,33 +278,62 @@ class FuelLogResponse(BaseModel):
 
 class ExpenseCreate(BaseModel):
     vehicle_id: str = Field(..., examples=["uuid-of-vehicle"])
+    driver_id: Optional[str] = Field(None, examples=["uuid-of-driver"])
     category: ExpenseCategory = Field(..., examples=[ExpenseCategory.Toll])
     amount: float = Field(..., gt=0, examples=[25.00])
     date: date_type = Field(..., examples=["2026-01-15"])
+    description: Optional[str] = Field(None, examples=["Highway toll charge"])
+    notes: Optional[str] = Field(None, examples=["Highway toll — Route 66"])
+
+
+class ExpenseUpdate(BaseModel):
+    vehicle_id: Optional[str] = Field(None, examples=["uuid-of-vehicle"])
+    driver_id: Optional[str] = Field(None, examples=["uuid-of-driver"])
+    category: Optional[ExpenseCategory] = Field(None, examples=[ExpenseCategory.Toll])
+    amount: Optional[float] = Field(None, gt=0, examples=[25.00])
+    date: Optional[date_type] = Field(None, examples=["2026-01-15"])
+    description: Optional[str] = Field(None, examples=["Highway toll charge"])
     notes: Optional[str] = Field(None, examples=["Highway toll — Route 66"])
 
 
 class ExpenseResponse(BaseModel):
     id: str
     vehicle_id: str
+    driver_id: Optional[str]
     category: ExpenseCategory
     amount: float
     date: date_type
+    description: Optional[str]
     notes: Optional[str]
+    vehicle_registration: Optional[str] = None
+    driver_name: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
 
 # ──────────────────────────── Dashboard ────────────────────────────
 
+class StatusBreakdown(BaseModel):
+    label: str
+    value: int
+    color: str
+
+
 class DashboardKPIs(BaseModel):
+    total_vehicles: int = Field(0, examples=[15])
     active_vehicles: int = Field(..., examples=[12])
     available_vehicles: int = Field(..., examples=[8])
     vehicles_in_maintenance: int = Field(..., examples=[2])
+    total_drivers: int = Field(0, examples=[10])
+    available_drivers: int = Field(0, examples=[7])
     active_trips: int = Field(..., examples=[4])
     pending_trips: int = Field(..., examples=[3])
     drivers_on_duty: int = Field(..., examples=[4])
     fleet_utilization_pct: float = Field(..., examples=[33.3])
+    total_fuel_cost: float = Field(0.0, examples=[12500.0])
+    monthly_expense: float = Field(0.0, examples=[8500.0])
+    average_mileage: Optional[float] = Field(None, examples=[8.4])
+    vehicle_status_breakdown: list[StatusBreakdown] = []
 
 
 # ──────────────────────────── Reports ────────────────────────────
@@ -281,3 +368,74 @@ class VehicleROIReport(BaseModel):
     total_cost: float
     acquisition_cost: float
     roi_pct: Optional[float]
+
+
+class MonthlyRevenue(BaseModel):
+    month: str
+    value: float
+
+
+class ReportSummary(BaseModel):
+    fuel_efficiency_kmpl: Optional[float]
+    fleet_utilization_pct: float
+    operational_cost: float
+    vehicle_roi_pct: Optional[float]
+    monthly_revenue: list[MonthlyRevenue] = []
+    costliest_vehicles: list[dict] = []
+
+
+# ──────────────────────────── Fuel/Expense Summaries ────────────────────────────
+
+class FuelExpenseSummary(BaseModel):
+    total_fuel_cost: float = 0.0
+    total_fuel_liters: float = 0.0
+    total_expense_amount: float = 0.0
+    monthly_fuel: list[dict] = []
+    monthly_expense: list[dict] = []
+    vehicle_totals: list[dict] = []
+    driver_totals: list[dict] = []
+
+
+# ──────────────────────────── AI Dispatch ────────────────────────────
+
+class DispatchRequest(BaseModel):
+    source: str = Field(..., examples=["Gandhinagar Depot"])
+    destination: str = Field(..., examples=["Ahmedabad Hub"])
+    cargo_weight_kg: float = Field(..., gt=0, examples=[1800.0])
+    planned_distance_km: float = Field(..., gt=0, examples=[350.0])
+    preferred_vehicle_type: Optional[str] = Field(None, examples=["Van"])
+
+
+class DispatchScore(BaseModel):
+    availability: float
+    capacity_fit: float
+    fuel_efficiency: float
+    maintenance_status: float
+    safety_score: float
+    vehicle_condition: float
+
+
+class DispatchRecommendation(BaseModel):
+    rank: int
+    vehicle: VehicleResponse
+    driver: DriverResponse
+    total_score: float
+    scores: DispatchScore
+    reasoning: str
+
+
+# ──────────────────────────── Map ────────────────────────────
+
+class MapVehicle(BaseModel):
+    id: str
+    registration_number: str
+    name_model: str
+    type: str
+    status: VehicleStatus
+    latitude: Optional[float]
+    longitude: Optional[float]
+    last_location_update: Optional[datetime]
+    driver_name: Optional[str] = None
+    driver_id: Optional[str] = None
+
+    model_config = {"from_attributes": True}
