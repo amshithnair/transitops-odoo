@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, type UserRole, type User } from '../context/AuthContext';
 import client from '../api/client';
-import { ALL_ROLES, ROLE_LABELS, ROLE_COLORS, ROLE_SCOPE } from '../lib/roles';
+import { ALL_ROLES, ROLE_LABELS, ROLE_COLORS, ROLE_SCOPE } from '../utils/roles';
 
 const DEMO: Record<UserRole, { email: string; pass: string; name: string }> = {
   superadmin:        { email: 'admin@transitops.com',    pass: 'admin123',   name: 'Root Admin' },

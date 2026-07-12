@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import client from '../api/client';
-import { useData } from '../lib/useData';
-import { demoReport, demoVehicles } from '../lib/demo';
-import type { ReportData, Vehicle } from '../lib/types';
-import { fmtNum } from '../lib/status';
+import { useData } from '../hooks/useData';
+import type { ReportData, Vehicle } from '../types';
+import { fmtNum } from '../utils/status';
 import { PageHead, Loader, Kpi } from '../components/ui';
 import { IconDownload, IconChart } from '../components/Icons';
 
@@ -18,11 +17,11 @@ export const ReportsPage: React.FC = () => {
   if (vehFilter) params.vehicle_id = vehFilter;
   
   // Note: API returns individual report lists on separate endpoints, but /reports/summary gives aggregate data.
-  const { data: summary, loading } = useData<ReportData>('/reports/summary', demoReport, params);
-  const { data: vehData } = useData<{ items?: Vehicle[] } | Vehicle[]>('/vehicles', demoVehicles);
-  const vehicles: Vehicle[] = Array.isArray(vehData) ? vehData : (vehData?.items ?? demoVehicles);
+  const { data: summary, loading, error } = useData<ReportData>('/reports/summary', params);
+  const { data: vehData } = useData<{ items?: Vehicle[] } | Vehicle[]>('/vehicles');
+  const vehicles: Vehicle[] = Array.isArray(vehData) ? vehData : (vehData?.items ?? []);
   
-  const s = summary || demoReport;
+  const s = summary;
 
   // Functions to trigger CSV downloads directly from the backend endpoints
   const downloadCsv = async (endpoint: string, filename: string) => {
@@ -46,7 +45,7 @@ export const ReportsPage: React.FC = () => {
     }
   };
 
-  const chartMax = Math.max(...(s.monthly_revenue || []).map(m => m.value), 1);
+  const chartMax = s ? Math.max(...(s.monthly_revenue || []).map(m => m.value), 1) : 1;
 
   return (
     <>
@@ -58,7 +57,11 @@ export const ReportsPage: React.FC = () => {
         </div>
       </PageHead>
 
-      {loading ? <Loader /> : (
+      {loading ? <Loader /> : error ? (
+        <div className="alert alert-danger">{error}</div>
+      ) : !s ? (
+        <div className="card card-pad text-muted text-center py-40">No data found for this period.</div>
+      ) : (
         <>
           <div className="kpi-row mb-20">
             <Kpi label="Fuel Efficiency" value={s.fuel_efficiency_kmpl != null ? `${s.fuel_efficiency_kmpl} km/L` : 'N/A'} color="var(--green)" icon={<IconChart />} sub="Fleet average" />

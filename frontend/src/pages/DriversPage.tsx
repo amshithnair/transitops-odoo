@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../lib/useData';
-import { demoDrivers, demoVehicles } from '../lib/demo';
-import type { Driver, Vehicle, PaginatedResponse } from '../lib/types';
-import { canEdit } from '../lib/roles';
-import { safetyColor, expiryInfo, fmtDate } from '../lib/status';
+import { useData } from '../hooks/useData';
+import type { Driver, Vehicle, PaginatedResponse } from '../types';
+import { canEdit } from '../utils/roles';
+import { safetyColor, expiryInfo, fmtDate } from '../utils/status';
 import { PageHead, Badge, ColorBadge, Modal, exportCsv, Loader } from '../components/ui';
 import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert } from '../components/Icons';
 
@@ -25,12 +24,12 @@ export const DriversPage: React.FC = () => {
   if (statusF) params.status = statusF;
   if (q) params.search = q;
 
-  const { data, loading, reload } = useData<PaginatedResponse<Driver>>('/drivers', { items: demoDrivers, total: demoDrivers.length, page: 1, page_size: 20 }, params);
-  const { data: vehData } = useData<PaginatedResponse<Vehicle>>('/vehicles', { items: demoVehicles, total: demoVehicles.length, page: 1, page_size: 100 });
-  const vehicles = vehData?.items ?? demoVehicles;
+  const { data, loading, error, reload } = useData<PaginatedResponse<Driver>>('/drivers', params);
+  const { data: vehData } = useData<PaginatedResponse<Vehicle>>('/vehicles', { page_size: 1000 });
 
-  const rows = data?.items ?? demoDrivers;
-  const total = data?.total ?? rows.length;
+  const rows = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const vehicles = vehData?.items ?? [];
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const [form, setForm] = useState<Driver | null>(null);
@@ -73,7 +72,9 @@ export const DriversPage: React.FC = () => {
         <div className="filter-group"><label>Status</label><select className="select" value={statusF} onChange={(e) => { setStatusF(e.target.value); setPage(1); }}><option value="">All</option>{DRIVER_STATUSES.map(s => <option key={s}>{s}</option>)}</select></div>
       </div>
 
-      {loading ? <Loader /> : (
+      {loading ? <Loader /> : error ? (
+        <div className="alert alert-danger">{error}</div>
+      ) : (
         <div className="card">
           <div className="table-wrap">
             <table className="table">

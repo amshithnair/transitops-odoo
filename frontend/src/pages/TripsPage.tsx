@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../lib/useData';
-import { demoTrips, demoVehicles, demoDrivers } from '../lib/demo';
-import type { Trip, Vehicle, Driver } from '../lib/types';
-import { canEdit } from '../lib/roles';
-import { expiryInfo } from '../lib/status';
-import { PageHead, Badge, Modal } from '../components/ui';
+import { useData } from '../hooks/useData';
+import type { Trip, Vehicle, Driver } from '../types';
+import { canEdit } from '../utils/roles';
+import { expiryInfo } from '../utils/status';
+import { PageHead, Badge, Modal, Loader } from '../components/ui';
 import { IconAlert, IconCheck, IconMap, IconClock } from '../components/Icons';
 
 const LIFECYCLE = ['Draft', 'Dispatched', 'Completed', 'Cancelled'];
@@ -15,12 +14,13 @@ export const TripsPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'trips');
 
-  const { data: trips, setData: setTrips } = useData<Trip[]>('/trips', demoTrips);
-  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const { data: drivers, setData: setDrivers } = useData<Driver[]>('/drivers', demoDrivers);
-  const tripRows = Array.isArray(trips) ? trips : demoTrips;
-  const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
-  const drvRows = Array.isArray(drivers) ? drivers : demoDrivers;
+  const { data: tripsData, loading, error, reload: reloadTrips } = useData<{ items?: Trip[] } | Trip[]>('/trips');
+  const { data: vehData, reload: reloadVehicles } = useData<{ items?: Vehicle[] } | Vehicle[]>('/vehicles');
+  const { data: drvData, reload: reloadDrivers } = useData<{ items?: Driver[] } | Driver[]>('/drivers');
+
+  const rows = Array.isArray(tripsData) ? tripsData : (tripsData?.items ?? []);
+  const vehRows = Array.isArray(vehData) ? vehData : (vehData?.items ?? []);
+  const drvRows = Array.isArray(drvData) ? drvData : (drvData?.items ?? []);
 
   // Dispatch-eligible pools (business rules): vehicles Available only; drivers Available + not expired
   const availVehicles = vehRows.filter((v) => v.status === 'Available');
@@ -49,32 +49,33 @@ export const TripsPage: React.FC = () => {
 
   const dispatch = async () => {
     if (!canDispatch || !veh || !drv) return;
-    const code = `TR${String(tripRows.length + 1).padStart(3, '0')}`;
-    const trip: Trip = { id: `t${Date.now()}`, code, source, destination: dest, vehicle_id: veh.id, vehicle_label: veh.registration_number, driver_id: drv.id, driver_label: drv.name, cargo_weight_kg: cargo, planned_distance_km: dist, status: 'Dispatched', eta: `${Math.round(dist * 2)} min` };
-    // cascade: vehicle + driver -> On Trip
-    setTrips([trip, ...tripRows]);
-    setVehicles(vehRows.map((v) => (v.id === veh.id ? { ...v, status: 'On Trip' } : v)));
-    setDrivers(drvRows.map((d) => (d.id === drv.id ? { ...d, status: 'On Trip' } : d)));
-    reset();
-    try { await client.post('/trips', { source, destination: dest, vehicle_id: veh.id, driver_id: drv.id, cargo_weight_kg: cargo, planned_distance_km: dist, dispatch: true }); } catch { /* offline demo */ }
+    try {
+      await client.post('/trips', { source, destination: dest, vehicle_id: veh.id, driver_id: drv.id, cargo_weight_kg: cargo, planned_distance_km: dist, dispatch: true });
+      reloadTrips();
+      reloadVehicles();
+      reloadDrivers();
+      reset();
+    } catch (e: any) { alert(e?.response?.data?.detail || 'Failed to dispatch trip'); }
   };
 
   const cancelTrip = async (t: Trip) => {
-    setTrips(tripRows.map((x) => (x.id === t.id ? { ...x, status: 'Cancelled' } : x)));
-    setVehicles(vehRows.map((v) => (v.registration_number === t.vehicle_label ? { ...v, status: 'Available' } : v)));
-    setDrivers(drvRows.map((d) => (d.name === t.driver_label ? { ...d, status: 'Available' } : d)));
-    try { await client.post(`/trips/${t.id}/cancel`); } catch { /* offline demo */ }
+    try {
+      await client.post(`/trips/${t.id}/cancel`);
+      reloadTrips();
+      reloadVehicles();
+      reloadDrivers();
+    } catch (e: any) { alert('Failed to cancel trip'); }
   };
 
   const completeTrip = async () => {
     if (!completing) return;
-    const t = completing;
-    // cascade: odometer -> fuel log -> expense -> vehicle & driver Available -> Completed
-    setTrips(tripRows.map((x) => (x.id === t.id ? { ...x, status: 'Completed', final_odometer: finalOdo, fuel_consumed: fuel, eta: null } : x)));
-    setVehicles(vehRows.map((v) => (v.registration_number === t.vehicle_label ? { ...v, status: 'Available', odometer_km: finalOdo || v.odometer_km } : v)));
-    setDrivers(drvRows.map((d) => (d.name === t.driver_label ? { ...d, status: 'Available' } : d)));
-    setCompleting(null); setFinalOdo(0); setFuel(0);
-    try { await client.post(`/trips/${t.id}/complete`, { final_odometer: finalOdo, fuel_consumed: fuel }); } catch { /* offline demo */ }
+    try {
+      await client.post(`/trips/${completing.id}/complete`, { final_odometer: finalOdo, fuel_consumed: fuel });
+      setCompleting(null); setFinalOdo(0); setFuel(0);
+      reloadTrips();
+      reloadVehicles();
+      reloadDrivers();
+    } catch (e: any) { alert('Failed to complete trip'); }
   };
 
   return (
@@ -84,7 +85,6 @@ export const TripsPage: React.FC = () => {
       {!editable && <div className="view-note"><IconAlert size={15} />You have view access to Trips — contact a Dispatcher to modify.</div>}
 
       <div className="two-col">
-        {/* LEFT: lifecycle + create form */}
         <div>
           <div className="card card-pad mb-16">
             <div className="klabel mb-16">Trip Lifecycle</div>
@@ -126,8 +126,9 @@ export const TripsPage: React.FC = () => {
               <div className="field"><label>Planned Distance (km)</label><input className="input" type="number" min={0} value={dist || ''} onChange={(e) => setDist(+e.target.value)} placeholder="32" disabled={!editable} /></div>
             </div>
 
-            {/* Live capacity validation block + gauge */}
-            {veh && cargo > 0 && (
+            {loading ? <Loader /> : error ? (
+              <div className="alert alert-danger">{error}</div>
+            ) : veh && cargo > 0 ? (
               <div className={`valid-block ${capOk ? 'valid-ok' : 'valid-err'}`}>
                 <div className="vline"><span>Vehicle Capacity</span><b>{cap} kg</b></div>
                 <div className="vline"><span>Cargo Weight</span><b>{cargo} kg</b></div>
@@ -138,7 +139,7 @@ export const TripsPage: React.FC = () => {
                     : <><IconAlert size={14} />Capacity exceeded by {over} kg — dispatch blocked</>}
                 </div>
               </div>
-            )}
+            ) : null}
 
             <div className="flex gap-12 mt-8">
               <button className="btn btn-primary" disabled={!canDispatch} onClick={dispatch}>Dispatch Trip</button>
@@ -150,7 +151,7 @@ export const TripsPage: React.FC = () => {
         {/* RIGHT: live board */}
         <div className="card card-pad">
           <div className="card-title mb-20">Live Board</div>
-          {tripRows.map((t) => (
+          {rows.map((t) => (
             <div className="live-card" key={t.id}>
               <div className="live-top">
                 <span className="live-id">{t.code || t.id}</span>
@@ -169,6 +170,7 @@ export const TripsPage: React.FC = () => {
               )}
             </div>
           ))}
+          {rows.length === 0 && <div className="text-muted">No trips found.</div>}
           <div className="rule-note" style={{ marginTop: 16 }}><IconAlert size={14} />On Complete: odometer → fuel log → expense → Vehicle &amp; Driver set Available.</div>
         </div>
       </div>

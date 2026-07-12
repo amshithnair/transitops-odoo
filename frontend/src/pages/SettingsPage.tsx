@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PageHead } from '../components/ui';
-import { ALL_ROLES, RBAC, ROLE_LABELS, SECTION_LABELS } from '../lib/roles';
+import { ALL_ROLES, RBAC, ROLE_LABELS, SECTION_LABELS } from '../utils/roles';
 import { IconCheck } from '../components/Icons';
 
 export const SettingsPage: React.FC = () => {

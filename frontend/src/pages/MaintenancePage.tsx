@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../lib/useData';
-import { demoMaintenance, demoVehicles } from '../lib/demo';
-import type { Maintenance, Vehicle } from '../lib/types';
-import { canEdit } from '../lib/roles';
-import { fmtNum, fmtDate } from '../lib/status';
-import { PageHead, Badge } from '../components/ui';
+import { useData } from '../hooks/useData';
+import type { Maintenance, Vehicle, PaginatedResponse } from '../types';
+import { canEdit } from '../utils/roles';
+import { fmtNum, fmtDate } from '../utils/status';
+import { PageHead, Badge, Loader } from '../components/ui';
 import { IconAlert, IconCheck } from '../components/Icons';
 
 export const MaintenancePage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'fleet');
-  const { data: logs, setData: setLogs } = useData<Maintenance[]>('/maintenance', demoMaintenance);
-  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const rows = Array.isArray(logs) ? logs : demoMaintenance;
-  const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
+  const params = { page_size: 20 };
+  const { data, loading, error, reload } = useData<PaginatedResponse<Maintenance>>('/maintenance', params);
+  const { data: vehData } = useData<PaginatedResponse<Vehicle>>('/vehicles', { page_size: 1000 });
+
+  const rows = data?.items ?? [];
+  const vehicles = vehData?.items ?? [];
 
   const [vehicle, setVehicle] = useState('');
   const [service, setService] = useState('');
@@ -26,23 +27,19 @@ export const MaintenancePage: React.FC = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!vehicle || !service) return;
-    const rec: Maintenance = { id: `m${Date.now()}`, vehicle_label: vehicle, service_type: service, cost, date, status };
-    setLogs([rec, ...rows]);
-    // cascade: Active -> vehicle In Shop
-    if (status === 'Active') setVehicles(vehRows.map((v) => (v.registration_number === vehicle ? { ...v, status: 'In Shop' } : v)));
+    try { 
+      await client.post('/maintenance', { vehicle_label: vehicle, service_type: service, cost, date, status }); 
+      reload();
+    } catch (err) { console.error(err); }
     setVehicle(''); setService(''); setCost(0);
-    try { await client.post('/maintenance', { vehicle_label: vehicle, service_type: service, cost, date, status }); } catch { /* offline demo */ }
   };
 
   const toggleClose = async (m: Maintenance) => {
     const nextStatus = m.status === 'Active' ? 'Closed' : 'Active';
-    setLogs(rows.map((x) => (x.id === m.id ? { ...x, status: nextStatus } : x)));
-    // Closing -> vehicle Available (unless Retired); reopening -> In Shop
-    setVehicles(vehRows.map((v) => {
-      if (v.registration_number !== m.vehicle_label || v.status === 'Retired') return v;
-      return { ...v, status: nextStatus === 'Closed' ? 'Available' : 'In Shop' };
-    }));
-    try { await client.patch(`/maintenance/${m.id}`, { status: nextStatus }); } catch { /* offline demo */ }
+    try { 
+      await client.patch(`/maintenance/${m.id}`, { status: nextStatus }); 
+      reload();
+    } catch (err) { console.error(err); }
   };
 
   return (
@@ -51,14 +48,20 @@ export const MaintenancePage: React.FC = () => {
       {!editable && <div className="view-note"><IconAlert size={15} />View-only — a Fleet Manager logs and closes service records.</div>}
 
       <div className="two-col">
-        <div className="card card-pad">
+        {loading ? <Loader /> : error ? (
+          <div className="alert alert-danger">{error}</div>
+        ) : (
+          <>
+            <div className="card card-pad">
           <div className="card-title mb-20">Log Service Record</div>
           <form onSubmit={submit}>
-            <div className="field"><label>Vehicle</label>
-              <select className="select" value={vehicle} onChange={(e) => setVehicle(e.target.value)} disabled={!editable} required>
-                <option value="">Select vehicle…</option>
-                {vehRows.filter((v) => v.status !== 'Retired').map((v) => <option key={v.id} value={v.registration_number}>{v.registration_number}</option>)}
-              </select>
+            <div className="field-row">
+              <div className="field"><label>Vehicle</label>
+                <select className="select" value={vehicle} onChange={(e) => setVehicle(e.target.value)} disabled={!editable} required>
+                  <option value="">Select vehicle…</option>
+                  {vehicles.map((v) => <option key={v.id} value={v.registration_number}>{v.registration_number}</option>)}
+                </select>
+              </div>
             </div>
             <div className="field"><label>Service Type</label><input className="input" value={service} onChange={(e) => setService(e.target.value)} placeholder="Oil Change" disabled={!editable} required /></div>
             <div className="field-row">
@@ -96,6 +99,8 @@ export const MaintenancePage: React.FC = () => {
             </table>
           </div>
         </div>
+          </>
+        )}
       </div>
     </>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { statusColor, type BadgeColor } from '../lib/status';
+import { statusColor, type BadgeColor } from '../utils/status';
 import { IconClose } from './Icons';
 
 /* ── Status badge ── */

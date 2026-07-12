@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { roleLabel, type Section } from '../lib/roles';
+import { roleLabel, type Section } from '../utils/roles';
 import {
   IconDashboard, IconTruck, IconUsers, IconRoute, IconWrench, IconFuel,
   IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconLogout, IconAI, IconMap

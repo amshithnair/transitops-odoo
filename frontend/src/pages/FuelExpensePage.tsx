@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../lib/useData';
-import { demoFuel, demoExpenses, demoVehicles, demoDrivers } from '../lib/demo';
-import type { FuelLog, Expense, Vehicle, Driver, PaginatedResponse, FuelExpenseSummary } from '../lib/types';
-import { canEdit } from '../lib/roles';
-import { fmtNum, fmtDate } from '../lib/status';
-import { PageHead, Modal, exportCsv, Loader, Kpi, StatBars } from '../components/ui';
+import { useData } from '../hooks/useData';
+import type { FuelLog, Expense, Vehicle, Driver, PaginatedResponse, FuelExpenseSummary } from '../types';
+import { canEdit } from '../utils/roles';
+import { fmtNum, fmtDate } from '../utils/status';
+import { PageHead, Modal, exportCsv, Loader, Kpi, StatBars, Badge } from '../components/ui';
 import { IconPlus, IconDownload, IconEdit, IconTrash, IconFuel, IconChart } from '../components/Icons';
 
 type ModalKind = 'fuel' | 'expense' | null;
@@ -25,22 +24,26 @@ export const FuelExpensePage: React.FC = () => {
   if (vehFilter) fuelParams.vehicle_id = vehFilter;
   if (dateFrom) fuelParams.date_from = dateFrom;
   if (dateTo) fuelParams.date_to = dateTo;
+  const params: Record<string, unknown> = { page: 1, page_size: 50 };
+  if (vehFilter) params.vehicle_id = vehFilter;
+  if (dateFrom) params.date_from = dateFrom;
+  if (dateTo) params.date_to = dateTo;
 
-  const expParams: Record<string, unknown> = { page: 1, page_size: 50 };
-  if (vehFilter) expParams.vehicle_id = vehFilter;
-  if (dateFrom) expParams.date_from = dateFrom;
-  if (dateTo) expParams.date_to = dateTo;
+  const { data: fuelData, loading: fLoad, error: fErr, reload: fRel } = useData<PaginatedResponse<FuelLog>>('/fuel-expense/fuel', params);
+  const { data: expData, loading: eLoad, error: eErr, reload: eRel } = useData<PaginatedResponse<Expense>>('/fuel-expense/expenses', params);
+  const { data: sumData } = useData<FuelExpenseSummary>('/fuel-expense/summary', { start_date: dateFrom, end_date: dateTo });
 
-  const { data: fuelData, loading: fuelLoading, reload: reloadFuel } = useData<PaginatedResponse<FuelLog>>('/fuel-expense/fuel', { items: demoFuel, total: demoFuel.length, page: 1, page_size: 50 }, fuelParams);
-  const { data: expData, loading: expLoading, reload: reloadExp } = useData<PaginatedResponse<Expense>>('/fuel-expense/expenses', { items: demoExpenses, total: demoExpenses.length, page: 1, page_size: 50 }, expParams);
-  const { data: summary } = useData<FuelExpenseSummary>('/fuel-expense/summary', { total_fuel_cost: 0, total_fuel_liters: 0, total_expense_amount: 0, monthly_fuel: [], monthly_expense: [], vehicle_totals: [], driver_totals: [] });
-  const { data: vehData } = useData<PaginatedResponse<Vehicle>>('/vehicles', { items: demoVehicles, total: demoVehicles.length, page: 1, page_size: 100 });
-  const { data: drvData } = useData<PaginatedResponse<Driver>>('/drivers', { items: demoDrivers, total: demoDrivers.length, page: 1, page_size: 100 });
+  const { data: vehData } = useData<PaginatedResponse<Vehicle>>('/vehicles', { page_size: 1000 });
+  const { data: drvData } = useData<PaginatedResponse<Driver>>('/drivers', { page_size: 1000 });
 
-  const fuelRows = fuelData?.items ?? demoFuel;
-  const expRows = expData?.items ?? demoExpenses;
-  const vehicles = vehData?.items ?? demoVehicles;
-  const drivers = drvData?.items ?? demoDrivers;
+  const fuels = fuelData?.items ?? [];
+  const fTotal = fuelData?.total ?? 0;
+  const exps = expData?.items ?? [];
+  const eTotal = expData?.total ?? 0;
+  const summary = sumData;
+
+  const vehicles = vehData?.items ?? [];
+  const drivers = drvData?.items ?? [];
 
   const [modal, setModal] = useState<ModalKind>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -82,7 +85,7 @@ export const FuelExpensePage: React.FC = () => {
       const payload = { ...f, driver_id: f.driver_id || null, odometer_km: f.odometer_km || null };
       if (editId) await client.put(`/fuel-expense/fuel/${editId}`, payload);
       else await client.post('/fuel-expense/fuel', payload);
-      setModal(null); reloadFuel();
+      setModal(null); fRel();
     } catch (e2: unknown) {
       const r = e2 as { response?: { data?: { detail?: string } } };
       setErr(r.response?.data?.detail || 'Save failed.');
@@ -96,7 +99,7 @@ export const FuelExpensePage: React.FC = () => {
       const payload = { ...ex, driver_id: ex.driver_id || null, description: ex.description || null, notes: ex.notes || null };
       if (editId) await client.put(`/fuel-expense/expenses/${editId}`, payload);
       else await client.post('/fuel-expense/expenses', payload);
-      setModal(null); reloadExp();
+      setModal(null); eRel();
     } catch (e2: unknown) {
       const r = e2 as { response?: { data?: { detail?: string } } };
       setErr(r.response?.data?.detail || 'Save failed.');
@@ -105,12 +108,12 @@ export const FuelExpensePage: React.FC = () => {
 
   const deleteFuel = async (id: string) => {
     if (!confirm('Delete this fuel log?')) return;
-    try { await client.delete(`/fuel-expense/fuel/${id}`); reloadFuel(); } catch { /* */ }
+    try { await client.delete(`/fuel-expense/fuel/${id}`); fRel(); } catch { /* */ }
   };
 
   const deleteExpense = async (id: string) => {
     if (!confirm('Delete this expense?')) return;
-    try { await client.delete(`/fuel-expense/expenses/${id}`); reloadExp(); } catch { /* */ }
+    try { await client.delete(`/fuel-expense/expenses/${id}`); eRel(); } catch { /* */ }
   };
 
   // Vehicle cost breakdown for stat bars
@@ -121,7 +124,7 @@ export const FuelExpensePage: React.FC = () => {
   return (
     <>
       <PageHead title="Fuel & Expense Management" sub="Fuel logs, expenses & operational cost">
-        <button className="btn btn-ghost" onClick={() => exportCsv(tab === 'fuel' ? 'fuel_logs.csv' : 'expenses.csv', (tab === 'fuel' ? fuelRows : expRows) as unknown as Record<string, unknown>[])}><IconDownload size={15} />CSV</button>
+        <button className="btn btn-ghost" onClick={() => exportCsv(tab === 'fuel' ? 'fuel_logs.csv' : 'expenses.csv', (tab === 'fuel' ? fuels : exps) as unknown as Record<string, unknown>[])}><IconDownload size={15} />CSV</button>
         {editable && <>
           <button className="btn btn-ghost" onClick={() => openFuelModal()}><IconPlus size={15} />Log Fuel</button>
           <button className="btn btn-primary" onClick={() => openExpModal()}><IconPlus size={15} />Add Expense</button>
@@ -141,17 +144,18 @@ export const FuelExpensePage: React.FC = () => {
       </div>
 
       <div className="flex gap-12 mb-16">
-        <button className={`pill ${tab === 'fuel' ? 'active' : ''}`} onClick={() => setTab('fuel')}>Fuel Logs ({fuelData?.total ?? fuelRows.length})</button>
-        <button className={`pill ${tab === 'expense' ? 'active' : ''}`} onClick={() => setTab('expense')}>Expenses ({expData?.total ?? expRows.length})</button>
+        <button className={`pill ${tab === 'fuel' ? 'active' : ''}`} onClick={() => setTab('fuel')}>Fuel Logs ({fTotal})</button>
+        <button className={`pill ${tab === 'expense' ? 'active' : ''}`} onClick={() => setTab('expense')}>Expenses ({eTotal})</button>
       </div>
 
-      {tab === 'fuel' && (fuelLoading ? <Loader /> : (
+      {tab === 'fuel' && (
+        fLoad ? <Loader /> : fErr ? <div className="alert alert-danger">{fErr}</div> : (
         <div className="card mb-16">
           <div className="table-wrap">
             <table className="table">
               <thead><tr><th>Vehicle</th><th>Driver</th><th>Date</th><th>Liters</th><th>Cost</th><th>Odometer</th>{editable && <th></th>}</tr></thead>
               <tbody>
-                {fuelRows.map((r) => (
+                {fuels.map((r) => (
                   <tr key={r.id}>
                     <td className="mono td-strong">{r.vehicle_registration || '—'}</td>
                     <td>{r.driver_name || '—'}</td>
@@ -162,31 +166,33 @@ export const FuelExpensePage: React.FC = () => {
                     {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={() => openFuelModal(r)}><IconEdit size={15} /></button><button className="icon-btn" onClick={() => deleteFuel(r.id)}><IconTrash size={15} /></button></div></td>}
                   </tr>
                 ))}
-                {fuelRows.length === 0 && <tr><td colSpan={editable ? 7 : 6} className="empty-row">No fuel logs found.</td></tr>}
+                {fuels.length === 0 && <tr><td colSpan={editable ? 7 : 6} className="empty-row">No fuel logs found.</td></tr>}
               </tbody>
             </table>
           </div>
         </div>
-      ))}
+        )
+      )}
 
-      {tab === 'expense' && (expLoading ? <Loader /> : (
+      {tab === 'expense' && (
+        eLoad ? <Loader /> : eErr ? <div className="alert alert-danger">{eErr}</div> : (
         <div className="card mb-16">
           <div className="table-wrap">
             <table className="table">
               <thead><tr><th>Vehicle</th><th>Driver</th><th>Category</th><th>Description</th><th>Date</th><th>Amount</th>{editable && <th></th>}</tr></thead>
               <tbody>
-                {expRows.map((r) => (
+                {exps.map((r) => (
                   <tr key={r.id}>
                     <td className="mono td-strong">{r.vehicle_registration || '—'}</td>
                     <td>{r.driver_name || '—'}</td>
-                    <td>{r.category}</td>
-                    <td className="text-muted">{r.description || r.notes || '—'}</td>
+                    <td><Badge status={r.category || 'Other'} /></td>
+                    <td>{r.description || '—'}</td>
                     <td className="text-muted">{fmtDate(r.date)}</td>
                     <td className="td-strong">₹{fmtNum(r.amount)}</td>
                     {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={() => openExpModal(r)}><IconEdit size={15} /></button><button className="icon-btn" onClick={() => deleteExpense(r.id)}><IconTrash size={15} /></button></div></td>}
                   </tr>
                 ))}
-                {expRows.length === 0 && <tr><td colSpan={editable ? 7 : 6} className="empty-row">No expenses found.</td></tr>}
+                {exps.length === 0 && <tr><td colSpan={editable ? 7 : 6} className="empty-row">No expenses found.</td></tr>}
               </tbody>
             </table>
           </div>

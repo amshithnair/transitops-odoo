@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../lib/useData';
-import { demoKpis, demoTrips } from '../lib/demo';
-import type { KPIs, Trip } from '../lib/types';
-import { fmtNum } from '../lib/status';
+import { useData } from '../hooks/useData';
+import type { KPIs, Trip } from '../types';
+import { fmtNum } from '../utils/status';
 import { PageHead, Kpi, StatBars, Loader } from '../components/ui';
 import { IconTruck, IconUsers, IconRoute, IconFuel, IconChart, IconWrench, IconClock } from '../components/Icons';
 
@@ -16,15 +15,15 @@ export const DashboardPage: React.FC = () => {
   if (vehType) params.vehicle_type = vehType;
   if (region) params.region = region;
 
-  const { data: kpis, loading } = useData<KPIs>('/dashboard/kpis', demoKpis, params);
-  const { data: tripsData } = useData<{ items?: Trip[] } | Trip[]>('/trips', demoTrips);
-  const trips: Trip[] = Array.isArray(tripsData) ? tripsData : (tripsData?.items ?? demoTrips);
+  const { data: kpis, loading, error } = useData<KPIs>('/dashboard/kpis', params);
+  const { data: tripsData } = useData<{ items?: Trip[] } | Trip[]>('/trips');
+  const trips: Trip[] = Array.isArray(tripsData) ? tripsData : (tripsData?.items ?? []);
 
-  const k = kpis || demoKpis;
+  const k = kpis;
   const recentTrips = trips.slice(0, 5);
 
   // Status bars from live data
-  const statusBars = (k.vehicle_status_breakdown || []).map(s => ({
+  const statusBars = (k?.vehicle_status_breakdown || []).map(s => ({
     label: s.label,
     value: s.value,
     color: s.color,
@@ -39,7 +38,11 @@ export const DashboardPage: React.FC = () => {
         </div>
       </PageHead>
 
-      {loading ? <Loader /> : (
+      {loading ? <Loader /> : error ? (
+        <div className="alert alert-danger">{error}</div>
+      ) : !k ? (
+        <div className="text-muted">No dashboard data available.</div>
+      ) : (
         <>
           <div className="kpi-row mb-20">
             <Kpi label="Total Vehicles" value={k.total_vehicles} color="var(--blue)" icon={<IconTruck />} sub={`${k.available_vehicles} available`} />

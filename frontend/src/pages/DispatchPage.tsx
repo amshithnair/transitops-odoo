@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import client from '../api/client';
 import { PageHead, Modal } from '../components/ui';
 import { IconSearch, IconTruck, IconUsers, IconAlert } from '../components/Icons';
-import type { DispatchRecommendation } from '../lib/types';
-import { fmtNum } from '../lib/status';
+import type { DispatchRecommendation } from '../types';
+import { fmtNum } from '../utils/status';
 import { useNavigate } from 'react-router-dom';
 
 export const DispatchPage: React.FC = () => {

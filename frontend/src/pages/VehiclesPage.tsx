@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../lib/useData';
-import { demoVehicles } from '../lib/demo';
-import type { Vehicle, PaginatedResponse } from '../lib/types';
-import { canEdit } from '../lib/roles';
-import { fmtNum, expiryInfo } from '../lib/status';
+import { useData } from '../hooks/useData';
+import type { Vehicle, PaginatedResponse } from '../types';
+import { canEdit } from '../utils/roles';
+import { fmtNum, expiryInfo } from '../utils/status';
 import { PageHead, Badge, ColorBadge, Modal, exportCsv, Loader } from '../components/ui';
 import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert } from '../components/Icons';
 
@@ -32,10 +31,10 @@ export const VehiclesPage: React.FC = () => {
   if (fuelType) params.fuel_type = fuelType;
   if (q) params.search = q;
 
-  const { data, loading, reload } = useData<PaginatedResponse<Vehicle>>('/vehicles', { items: demoVehicles, total: demoVehicles.length, page: 1, page_size: 20 }, params);
+  const { data, loading, error, reload } = useData<PaginatedResponse<Vehicle>>('/vehicles', params);
 
-  const rows = data?.items ?? demoVehicles;
-  const total = data?.total ?? rows.length;
+  const rows = data?.items ?? [];
+  const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const [form, setForm] = useState<Vehicle | null>(null);
@@ -77,7 +76,9 @@ export const VehiclesPage: React.FC = () => {
         <div className="filter-group"><label>Fuel Type</label><select className="select" value={fuelType} onChange={(e) => { setFuelType(e.target.value); setPage(1); }}><option value="">All</option>{FUEL_TYPES.map(f => <option key={f}>{f}</option>)}</select></div>
       </div>
 
-      {loading ? <Loader /> : (
+      {loading ? <Loader /> : error ? (
+        <div className="alert alert-danger">{error}</div>
+      ) : (
         <div className="card">
           <div className="table-wrap">
             <table className="table">

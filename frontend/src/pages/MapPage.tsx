@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PageHead, Loader } from '../components/ui';
-import { useData } from '../lib/useData';
-import type { MapVehicle } from '../lib/types';
+import { useData } from '../hooks/useData';
+import type { MapVehicle } from '../types';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -51,8 +51,8 @@ export const MapPage: React.FC = () => {
   if (type) params.type = type;
 
   // Real backend endpoint with an empty array fallback if backend isn't ready
-  const { data, loading } = useData<MapVehicle[]>('/map/vehicles', [], params);
-  const vehicles = data || [];
+  const { data, loading, error } = useData<MapVehicle[]>('/map/vehicles');
+  const vehicles = data ?? [];
 
   return (
     <>
@@ -63,8 +63,8 @@ export const MapPage: React.FC = () => {
         </div>
       </PageHead>
 
-      {loading ? <Loader /> : (
-        <div className="card" style={{ height: 'calc(100vh - 190px)', position: 'relative', overflow: 'hidden' }}>
+      {loading ? <Loader /> : error ? <div className="alert alert-danger">{error}</div> : (
+        <div className="card" style={{ height: 'calc(100vh - 120px)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
           <MapContainer center={[22.2587, 71.1924]} zoom={6} style={{ height: '100%', width: '100%' }}>
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
