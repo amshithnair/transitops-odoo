@@ -15,7 +15,7 @@ const blank = (): Driver => ({ id: '', name: '', license_number: '', license_cat
 export const DriversPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'drivers');
-  const { data, reload } = useData<Driver[]>('/drivers', []);
+  const { data, reload, setData } = useData<Driver[]>('/drivers', []);
   const rows = Array.isArray(data) ? data : [];
 
   const [q, setQ] = useState('');
