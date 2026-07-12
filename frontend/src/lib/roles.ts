@@ -30,7 +30,7 @@ export const ROLE_SCOPE: Record<UserRole, string> = {
 
 export const ALL_ROLES: UserRole[] = ['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'];
 
-// RBAC matrix — rows=role, cols=section. Spec Section 6 + Super Admin (full CRUD everywhere).
+// RBAC matrix — rows=role, cols=section.
 export const RBAC: Record<UserRole, Record<Section, Access>> = {
   fleet_manager:    { fleet: 'crud', drivers: 'crud', trips: 'crud', fuel: 'crud', analytics: 'crud' },
   driver:           { fleet: 'view', drivers: 'none', trips: 'crud', fuel: 'none', analytics: 'none' },

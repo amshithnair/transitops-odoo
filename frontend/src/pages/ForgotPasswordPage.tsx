@@ -11,7 +11,7 @@ export const ForgotPasswordPage: React.FC = () => {
   const [resetCode, setResetCode] = useState('');
   
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   const [submitting, setSubmitting] = useState(false);
   
   const navigate = useNavigate();
@@ -19,11 +19,9 @@ export const ForgotPasswordPage: React.FC = () => {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccessMessage(null);
     setSubmitting(true);
     try {
-      const res = await client.post('/auth/forgot-password', { email });
-      setSuccessMessage(res.data.message); // Captures the DEMO OTP
+      await client.post('/auth/forgot-password', { email });
       setStep(2);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to send OTP.');
@@ -39,7 +37,7 @@ export const ForgotPasswordPage: React.FC = () => {
     try {
       const res = await client.post('/auth/verify-otp', { email, otp });
       setResetCode(res.data.reset_code);
-      setSuccessMessage(null);
+
       setStep(3);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Invalid OTP.');
@@ -54,7 +52,7 @@ export const ForgotPasswordPage: React.FC = () => {
     setSubmitting(true);
     try {
       await client.post('/auth/reset-password', { email, reset_code: resetCode, new_password: newPassword });
-      alert('Password reset successfully! Please log in.');
+
       navigate('/login');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to reset password.');
@@ -102,7 +100,7 @@ export const ForgotPasswordPage: React.FC = () => {
             
             <div className="field">
               <label>Email Address</label>
-              <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@transitops.com" />
+              <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@transitops.in" />
             </div>
             
             <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={submitting}>
@@ -119,7 +117,7 @@ export const ForgotPasswordPage: React.FC = () => {
             <h1>Verify OTP</h1>
             <div className="lf-sub">Enter the 6-digit code sent to {email}</div>
             {error && <div className="alert alert-danger">{error}</div>}
-            {successMessage && <div className="alert alert-success">{successMessage}</div>}
+
             
             <div className="field">
               <label>OTP Code</label>

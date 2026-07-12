@@ -5,6 +5,7 @@ import client from '../api/client';
 import { ALL_ROLES, ROLE_LABELS, ROLE_COLORS, ROLE_SCOPE } from '../lib/roles';
 
 const DEMO: Record<UserRole, { email: string; pass: string; name: string }> = {
+
   fleet_manager:     { email: 'fleet@transitops.com',   pass: 'Fleet@123',   name: 'Alice Fleet' },
   driver:            { email: 'driver@transitops.com', pass: 'Driver@123',  name: 'Bob Driver' },
   safety_officer:    { email: 'safety@transitops.com',   pass: 'Safety@123',  name: 'Carol Safety' },

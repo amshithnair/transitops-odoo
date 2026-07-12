@@ -5,9 +5,18 @@ All request/response models with Field examples for Swagger rendering.
 """
 
 from datetime import datetime, date as date_type
-from typing import Optional, List
+from typing import Optional, List, Annotated
+import re
 
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, AfterValidator
+
+def validate_email_relaxed(v: str) -> str:
+    pattern = r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}|[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.local$'
+    if not re.match(pattern, v):
+        raise ValueError('Invalid email format')
+    return v.lower()
+
+RelaxedEmailStr = Annotated[str, AfterValidator(validate_email_relaxed)]
 
 from app.models import (
     UserRole, VehicleStatus, DriverStatus, TripStatus,
@@ -19,13 +28,13 @@ from app.models import (
 
 class UserRegister(BaseModel):
     name: str = Field(..., min_length=1)
-    email: EmailStr
+    email: RelaxedEmailStr
     password: str = Field(..., min_length=6)
     role: UserRole = UserRole.driver
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: RelaxedEmailStr
     password: str
 
 
@@ -54,11 +63,11 @@ class LoginResponse(BaseModel):
 
 # Password reset flow schemas
 class ForgotPasswordRequest(BaseModel):
-    email: EmailStr = Field(..., examples=["user@example.com"])
+    email: RelaxedEmailStr = Field(..., examples=["user@example.com"])
 
 
 class VerifyOTPRequest(BaseModel):
-    email: EmailStr = Field(..., examples=["user@example.com"])
+    email: RelaxedEmailStr = Field(..., examples=["user@example.com"])
     otp: str = Field(..., min_length=6, max_length=6, examples=["123456"])
 
 
@@ -68,7 +77,7 @@ class VerifyOTPResponse(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    email: EmailStr = Field(..., examples=["user@example.com"])
+    email: RelaxedEmailStr = Field(..., examples=["user@example.com"])
     reset_code: str = Field(..., examples=["temp-code-xyz"])
     new_password: str = Field(..., min_length=6, examples=["NewPass@123"])
 
@@ -80,7 +89,7 @@ class MessageResponse(BaseModel):
 # Fleet manager user creation
 class UserCreateByManager(BaseModel):
     name: str = Field(..., min_length=1, examples=["Demo Driver 1"])
-    email: EmailStr = Field(..., examples=["demo-driver-1@transitops.local"])
+    email: RelaxedEmailStr = Field(..., examples=["demo-driver-1@transitops.local"])
     password: str = Field(..., min_length=6, examples=["Demo@123"])
     role: UserRole = Field(..., examples=[UserRole.driver])
 
@@ -128,6 +137,7 @@ class VehicleResponse(BaseModel):
 
 class DriverCreate(BaseModel):
     name: str = Field(..., min_length=1, examples=["Alex Johnson"])
+    user_id: Optional[str] = Field(None, examples=["uuid-of-user"])
     license_number: str = Field(..., min_length=1, examples=["DL-2024-0042"])
     license_category: str = Field(..., examples=["C"])
     license_expiry_date: date_type = Field(..., examples=["2026-12-31"])
@@ -148,6 +158,7 @@ class DriverUpdate(BaseModel):
 
 class DriverResponse(BaseModel):
     id: str
+    user_id: Optional[str]
     name: str
     license_number: str
     license_category: str

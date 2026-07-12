@@ -25,12 +25,8 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql+psycopg2://transitops:transitops@db:5432/transitops
-      JWT_SECRET: change-me-to-a-real-secret-in-production
-      JWT_ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: "60"
-      FRONTEND_URL: http://localhost:5173
+    env_file:
+      - ./backend/.env
     depends_on:
       db:
         condition: service_healthy
