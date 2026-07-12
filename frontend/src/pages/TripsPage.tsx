@@ -7,7 +7,7 @@ import type { Trip, Vehicle, Driver } from '../lib/types';
 import { canEdit, roleLabel } from '../lib/roles';
 import { expiryInfo } from '../lib/status';
 import { logActivity } from '../lib/activity';
-import { PageHead, Badge, Modal, exportCsv } from '../components/ui';
+import { PageHead, Badge, Modal, exportCsv, CustomSelect } from '../components/ui';
 import { IconAlert, IconCheck, IconMap, IconClock, IconDownload } from '../components/Icons';
 
 const LIFECYCLE = ['Draft', 'Dispatched', 'Completed', 'Cancelled'];
@@ -116,16 +116,22 @@ export const TripsPage: React.FC = () => {
             </div>
             <div className="field-row">
               <div className="field"><label>Vehicle (Available only)</label>
-                <select className="select" value={vehId} onChange={(e) => setVehId(e.target.value)} disabled={!editable}>
-                  <option value="">Select vehicle…</option>
-                  {availVehicles.map((v) => <option key={v.id} value={v.id}>{v.registration_number} · {v.max_load_capacity_kg}kg</option>)}
-                </select>
+                <CustomSelect 
+                  value={vehId} 
+                  onChange={setVehId} 
+                  options={[{ value: '', label: 'Select vehicle…' }, ...availVehicles.map(v => ({ value: v.id, label: `${v.registration_number} · ${v.max_load_capacity_kg}kg` }))]}
+                  placeholder="Select vehicle…"
+                  disabled={!editable}
+                />
               </div>
               <div className="field"><label>Driver (Available only)</label>
-                <select className="select" value={drvId} onChange={(e) => setDrvId(e.target.value)} disabled={!editable}>
-                  <option value="">Select driver…</option>
-                  {availDrivers.map((d) => <option key={d.id} value={d.id}>{d.name} · safety {d.safety_score}</option>)}
-                </select>
+                <CustomSelect 
+                  value={drvId} 
+                  onChange={setDrvId} 
+                  options={[{ value: '', label: 'Select driver…' }, ...availDrivers.map(d => ({ value: d.id, label: `${d.name} · safety ${d.safety_score}` }))]}
+                  placeholder="Select driver…"
+                  disabled={!editable}
+                />
               </div>
             </div>
             <div className="field-row">

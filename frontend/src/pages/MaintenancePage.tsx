@@ -8,7 +8,7 @@ import type { Maintenance, Vehicle } from '../lib/types';
 import { canEdit, roleLabel } from '../lib/roles';
 import { fmtNum, fmtDate } from '../lib/status';
 import { logActivity } from '../lib/activity';
-import { PageHead, Badge, Th } from '../components/ui';
+import { PageHead, Badge, Th, CustomSelect } from '../components/ui';
 import { IconAlert, IconCheck } from '../components/Icons';
 
 export const MaintenancePage: React.FC = () => {
@@ -60,17 +60,20 @@ export const MaintenancePage: React.FC = () => {
           <div className="card-title mb-20">Log Service Record</div>
           <form onSubmit={submit}>
             <div className="field"><label>Vehicle</label>
-              <select className="select" value={vehicle} onChange={(e) => setVehicle(e.target.value)} disabled={!editable} required>
-                <option value="">Select vehicle…</option>
-                {vehRows.filter((v) => v.status !== 'Retired').map((v) => <option key={v.id} value={v.registration_number}>{v.registration_number}</option>)}
-              </select>
+              <CustomSelect 
+                value={vehicle} 
+                onChange={setVehicle} 
+                disabled={!editable} 
+                options={[{value: '', label: 'Select vehicle…'}, ...vehRows.filter((v) => v.status !== 'Retired').map((v) => v.registration_number)]} 
+                placeholder="Select vehicle…"
+              />
             </div>
             <div className="field"><label>Service Type</label><input className="input" value={service} onChange={(e) => setService(e.target.value)} placeholder="Oil Change" disabled={!editable} required /></div>
             <div className="field-row">
               <div className="field"><label>Cost (₹)</label><input className="input" type="number" min={0} value={cost || ''} onChange={(e) => setCost(+e.target.value)} placeholder="2500" disabled={!editable} /></div>
               <div className="field"><label>Date</label><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={!editable} /></div>
             </div>
-            <div className="field"><label>Status</label><select className="select" value={status} onChange={(e) => setStatus(e.target.value as 'Active' | 'Closed')} disabled={!editable}><option>Active</option><option>Closed</option></select></div>
+            <div className="field"><label>Status</label><CustomSelect value={status} onChange={(v) => setStatus(v as any)} disabled={!editable} options={['Active', 'Closed']} /></div>
             <button className="btn btn-primary btn-block" disabled={!editable}>Save Record</button>
           </form>
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../lib/useData';
 import { demoKpis, demoTrips, demoStatusBreakdown } from '../lib/demo';
 import type { KPIs, Trip } from '../lib/types';
-import { PageHead, Kpi, StatBars, Badge } from '../components/ui';
+import { PageHead, Kpi, StatBars, Badge, CustomSelect } from '../components/ui';
 import { IconTruck, IconRoute, IconUsers, IconChart, IconWrench, IconClock } from '../components/Icons';
 
 const KPI_DEFS = (k: KPIs) => [
@@ -37,21 +37,21 @@ export const DashboardPage: React.FC = () => {
       <div className="filters">
         <div className="filter-group">
           <label>Vehicle Type</label>
-          <select className="select" value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="">All</option><option>Van</option><option>Truck</option><option>Mini</option>
-          </select>
+          <div style={{ width: '140px' }}>
+            <CustomSelect value={type} onChange={setType} options={[{value: '', label: 'All'}, 'Van', 'Truck', 'Mini']} placeholder="All" />
+          </div>
         </div>
         <div className="filter-group">
           <label>Status</label>
-          <select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">All</option><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option>
-          </select>
+          <div style={{ width: '140px' }}>
+            <CustomSelect value={status} onChange={setStatus} options={[{value: '', label: 'All'}, 'Available', 'On Trip', 'In Shop', 'Retired']} placeholder="All" />
+          </div>
         </div>
         <div className="filter-group">
           <label>Region</label>
-          <select className="select" value={region} onChange={(e) => setRegion(e.target.value)}>
-            <option value="">All</option><option>North</option><option>South</option><option>East</option><option>West</option>
-          </select>
+          <div style={{ width: '140px' }}>
+            <CustomSelect value={region} onChange={setRegion} options={[{value: '', label: 'All'}, 'North', 'South', 'East', 'West']} placeholder="All" />
+          </div>
         </div>
       </div>
 

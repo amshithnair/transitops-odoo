@@ -7,8 +7,8 @@ import { demoVehicles } from '../lib/demo';
 import type { Vehicle } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { fmtNum } from '../lib/status';
-import { PageHead, Badge, Modal, exportCsv, Th } from '../components/ui';
-import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert, IconFile, IconUpload } from '../components/Icons';
+import { PageHead, Badge, Modal, exportCsv, Th, CustomSelect } from '../components/ui';
+import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert, IconFile, IconUpload, IconTruck } from '../components/Icons';
 
 const blank = (): Vehicle => ({ id: '', registration_number: '', name_model: '', type: 'Van', max_load_capacity_kg: 500, odometer_km: 0, acquisition_cost: 0, status: 'Available', region: '' });
 
@@ -66,8 +66,8 @@ export const VehiclesPage: React.FC = () => {
 
       <div className="filters">
         <div className="filter-group"><label>Search Reg. No.</label><input className="input" placeholder="e.g. VAN-05" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <div className="filter-group"><label>Type</label><select className="select" value={type} onChange={(e) => setType(e.target.value)}><option value="">All</option><option>Van</option><option>Truck</option><option>Mini</option></select></div>
-        <div className="filter-group"><label>Status</label><select className="select" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All</option><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option></select></div>
+        <div className="filter-group"><label>Type</label><div style={{width: 140}}><CustomSelect value={type} onChange={setType} options={[{value: '', label: 'All'}, 'Van', 'Truck', 'Mini']} placeholder="All" /></div></div>
+        <div className="filter-group"><label>Status</label><div style={{width: 140}}><CustomSelect value={status} onChange={setStatus} options={[{value: '', label: 'All'}, 'Available', 'On Trip', 'In Shop', 'Retired']} placeholder="All" /></div></div>
       </div>
 
       <div className="card">
@@ -105,14 +105,19 @@ export const VehiclesPage: React.FC = () => {
       <div className="rule-note"><IconAlert size={15} />Rule: Registration No. must be unique · Retired / In Shop vehicles are hidden from the Trip Dispatcher.</div>
 
       {form && (
-        <Modal title={form.id ? 'Edit Vehicle' : 'Register New Vehicle'} onClose={() => setForm(null)}
+        <Modal 
+          title={form.id ? 'Edit Vehicle' : 'Register New Vehicle'} 
+          splitIcon={<IconTruck size={32} />}
+          splitTitle="Vehicle Registry"
+          splitDesc="Configure vehicle details, load capacities, and required regional documentation."
+          onClose={() => setForm(null)}
           footer={<><button className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button><button className="btn btn-primary" form="veh-form">Save Vehicle</button></>}>
           <form id="veh-form" onSubmit={save}>
             {err && <div className="alert alert-danger">{err}</div>}
             <div className="field"><label>Registration Number (unique)</label><input className="input" required value={form.registration_number} onChange={(e) => setForm({ ...form, registration_number: e.target.value })} placeholder="VAN-05" /></div>
             <div className="field"><label>Name / Model</label><input className="input" required value={form.name_model} onChange={(e) => setForm({ ...form, name_model: e.target.value })} placeholder="Force Traveller" /></div>
             <div className="field-row">
-              <div className="field"><label>Type</label><select className="select" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}><option>Van</option><option>Truck</option><option>Mini</option></select></div>
+              <div className="field"><label>Type</label><CustomSelect value={form.type} onChange={(v) => setForm({ ...form, type: v as any })} options={['Van', 'Truck', 'Mini']} /></div>
               <div className="field"><label>Max Load (kg)</label><input className="input" type="number" min={1} required value={form.max_load_capacity_kg} onChange={(e) => setForm({ ...form, max_load_capacity_kg: +e.target.value })} /></div>
             </div>
             <div className="field-row">
@@ -120,7 +125,7 @@ export const VehiclesPage: React.FC = () => {
               <div className="field"><label>Acquisition Cost (₹)</label><input className="input" type="number" min={0} value={form.acquisition_cost} onChange={(e) => setForm({ ...form, acquisition_cost: +e.target.value })} /></div>
             </div>
             <div className="field-row">
-              <div className="field"><label>Status</label><select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option></select></div>
+              <div className="field"><label>Status</label><CustomSelect value={form.status} onChange={(v) => setForm({ ...form, status: v as any })} options={['Available', 'On Trip', 'In Shop', 'Retired']} /></div>
               <div className="field"><label>Region</label><input className="input" value={form.region || ''} onChange={(e) => setForm({ ...form, region: e.target.value })} placeholder="North" /></div>
             </div>
 

@@ -11,8 +11,9 @@ import {
   IconDashboard, IconTruck, IconUsers, IconRoute, IconWrench, IconFuel,
   IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconMenu, IconClose, IconLogout,
 } from './Icons';
+import { Modal } from './ui';
 
-interface NavItem { path: string; label: string; icon: React.FC<{ size?: number }>; section?: Section; }
+interface NavItem { path: string; label: string; icon: React.FC<{ size?: number; className?: string }>; section?: Section; }
 
 const NAV: NavItem[] = [
   { path: '/', label: 'Dashboard', icon: IconDashboard },
@@ -31,7 +32,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
   const { data: vehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
   const { data: drivers } = useData<Driver[]>('/drivers', demoDrivers);
@@ -52,7 +55,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="app-shell">
       {mobileOpen && <div className="sidebar-backdrop open" onClick={closeMobile} />}
-      <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${mobileOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-brand">
           <div className="brand-mark">
             <div className="brand-mark-inner"></div>
@@ -72,8 +75,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           {visible.map((n) => {
             const active = location.pathname === n.path;
             return (
-              <Link key={n.path} to={n.path} className={`nav-link ${active ? 'active' : ''}`} onClick={closeMobile}>
-                <span className="nav-link-dot" />
+              <Link key={n.path} to={n.path} className={`nav-link ${active ? 'active' : ''}`} onClick={closeMobile} title={n.label}>
+                <n.icon size={18} className="nav-icon" />
                 <span className="nav-link-label">{n.label}</span>
               </Link>
             );
@@ -81,31 +84,37 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </nav>
 
         <div className="sidebar-profile-box">
-          <div className="profile-details">
-            <div className="profile-avatar">{initials}</div>
-            <div className="profile-text">
-              <div className="profile-name">{user?.name || 'Raven K.'}</div>
-              <div className="profile-role">{roleLabel(user?.role) || 'Fleet Manager'}</div>
+            <div className="profile-details">
+              <div className="profile-avatar">{initials}</div>
+              <div className="profile-text">
+                <div className="profile-name">{user?.name || 'Raven K.'}</div>
+                <div className="profile-role">{roleLabel(user?.role) || 'Fleet Manager'}</div>
+              </div>
             </div>
             <button 
-              className="icon-btn" 
-              style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--sidebar-profile-text)', opacity: 0.6 }} 
-              onClick={() => { logout(); navigate('/login'); }} 
+              className="icon-btn logout-btn" 
+              onClick={() => setLogoutModalOpen(true)} 
               title="Logout"
             >
               <IconLogout size={16} />
             </button>
-          </div>
-          <button className="go-to-hub-btn" onClick={() => navigate('/')}>
-            <span>Go to Hub</span>
-            <span style={{ fontSize: '11px', fontWeight: 'bold' }}>↗</span>
+          <button className="go-to-hub-btn" onClick={() => navigate('/')} title="Go to Hub">
+            <span className="hub-text">Go to Hub</span>
+            <span className="hub-arrow" style={{ fontSize: '11px', fontWeight: 'bold' }}>↗</span>
           </button>
         </div>
       </aside>
 
       <div className="main">
         <header className="topbar">
-          <button className="icon-btn hamburger" onClick={() => setMobileOpen((v) => !v)} title="Menu">
+          <button 
+            className="icon-btn hamburger" 
+            onClick={() => {
+              if (window.innerWidth <= 768) setMobileOpen(v => !v);
+              else setSidebarCollapsed(v => !v);
+            }} 
+            title="Menu"
+          >
             {mobileOpen ? <IconClose size={17} /> : <IconMenu size={17} />}
           </button>
           <div className="topbar-title">{current?.label || 'TransitOps'}</div>
@@ -147,6 +156,23 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <div className="content-inner">{children}</div>
         </main>
       </div>
+
+      {logoutModalOpen && (
+        <Modal
+          title="Confirm Logout"
+          onClose={() => setLogoutModalOpen(false)}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setLogoutModalOpen(false)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => { logout(); navigate('/login'); }}>Logout</button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-muted)' }}>
+            Are you sure you want to log out of TransitOps?
+          </p>
+        </Modal>
+      )}
     </div>
   );
 };

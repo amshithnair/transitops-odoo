@@ -57,6 +57,7 @@
   --amber: #f59e0b;    --amber-bg: #fffbeb;   --amber-fg: #b45309;   --amber-border: #fef3c7;
   --red: #ef4444;      --red-bg: #fef2f2;      --red-fg: #991b1b;     --red-border: #fee2e2;
   --gray: #6b7280;     --gray-bg: #f3f4f6;    --gray-fg: #374151;    --gray-border: #e5e7eb;
+  --overlay: rgba(255, 255, 255, 0.3); /* iOS Glass base */
 }
 
 /* Dark Theme overrides (Forest & Obsidian -> Unified Deep Slate) */
@@ -147,6 +148,7 @@ a {
   background: var(--bg-frame);
   padding: 16px 16px 16px 0; /* Creates nested outer border */
   box-sizing: border-box;
+  animation: appFadeIn 0.25s ease-out forwards;
 }
 
 /* ─────────────────────────── Sidebar (Dark Green) ─────────────────────────── */
@@ -156,10 +158,45 @@ a {
   background: var(--bg-frame);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  padding: 8px 16px 8px 20px;
-  box-sizing: border-box;
-  color: #ffffff;
+  padding: 24px 20px;
+  position: relative;
+  z-index: 1000;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-x: hidden;
+}
+
+/* Collapsed Desktop State */
+.sidebar.collapsed {
+  width: 80px;
+  padding: 24px 14px;
+}
+.sidebar.collapsed .brand-text,
+.sidebar.collapsed .sidebar-search,
+.sidebar.collapsed .nav-link-label,
+.sidebar.collapsed .profile-text,
+.sidebar.collapsed .hub-text {
+  display: none;
+}
+.sidebar.collapsed .brand-mark {
+  margin: 0 auto;
+}
+.sidebar.collapsed .nav-link {
+  justify-content: center;
+  padding: 14px;
+}
+.sidebar.collapsed .sidebar-profile-box {
+  padding: 12px 0;
+  align-items: center;
+}
+.sidebar.collapsed .logout-btn {
+  margin: 8px auto 0;
+}
+.sidebar.collapsed .go-to-hub-btn {
+  justify-content: center;
+  padding: 12px;
+}
+.sidebar.collapsed .hub-arrow {
+  display: block;
 }
 
 .sidebar-brand {
@@ -249,7 +286,7 @@ a {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-radius: 999px;
   color: rgba(255, 255, 255, 0.7);
   font-size: 14px;
@@ -262,17 +299,14 @@ a {
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* Bullet icon next to links */
-.nav-link-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
+/* Nav Icons */
+.nav-icon {
   flex-shrink: 0;
+  opacity: 0.75;
   transition: all 0.2s ease;
 }
-.nav-link:hover .nav-link-dot {
-  border-color: #ffffff;
+.nav-link:hover .nav-icon {
+  opacity: 1;
 }
 
 /* Active Nav state */
@@ -282,9 +316,9 @@ a {
   color: #ffffff;
   font-weight: 600;
 }
-.nav-link.active .nav-link-dot {
-  border-color: var(--accent);
-  background: var(--accent);
+.nav-link.active .nav-icon {
+  opacity: 1;
+  color: var(--accent);
 }
 
 /* Bottom User Profile Card */
@@ -297,6 +331,7 @@ a {
   flex-direction: column;
   gap: 12px;
   margin-top: auto;
+  transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border);
 }
@@ -624,19 +659,21 @@ a {
 
 /* ─────────────────────────── Cards (Flat Editorial) ─────────────────────────── */
 .card {
-  background: var(--bg-panel);
+  background: var(--surface-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
   border-color: var(--text-faint);
 }
 .card-pad {
-  padding: 20px;
+  padding: 24px;
 }
 .card-head {
   display: flex;
@@ -722,24 +759,30 @@ a {
 
 .input, .select, .textarea {
   width: 100%;
-  padding: 9px 12px;
+  padding: 10px 14px;
   font-size: 13.5px;
   font-family: inherit;
   color: var(--text);
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  transition: border-color 0.15s ease;
+  transition: all 0.2s ease;
   outline: none;
 }
 .input::placeholder, .textarea::placeholder {
   color: var(--text-faint);
 }
+.input:hover, .select:hover, .textarea:hover {
+  border-color: var(--text-faint);
+}
 .input:focus, .select:focus, .textarea:focus {
   border-color: var(--accent);
+  background: var(--bg-panel);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 .input:disabled, .select:disabled {
-  background: var(--surface-hover);
+  background: var(--surface-card);
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
@@ -747,12 +790,72 @@ a {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
+  background-position: right 14px center;
+  padding-right: 36px;
 }
 .textarea {
   resize: vertical;
   min-height: 72px;
+}
+
+/* ─────────────────────────── Custom Dropdown ─────────────────────────── */
+.custom-select-wrap {
+  position: relative;
+  width: 100%;
+}
+.custom-select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--text);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.custom-select-btn:hover {
+  border-color: var(--text-faint);
+}
+.custom-select-btn:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-panel);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+.custom-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  z-index: 60;
+  max-height: 240px;
+  overflow-y: auto;
+  animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.custom-select-opt {
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.15s ease;
+}
+.custom-select-opt:hover, .custom-select-opt.focused {
+  background: var(--surface-hover);
+}
+.custom-select-opt.selected {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .checkbox {
@@ -908,12 +1011,29 @@ a {
   position: relative;
   background: var(--surface-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+.kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+}
+.kpi::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--k);
+  border-radius: 16px 0 0 16px;
 }
 .kpi .klabel {
   font-family: var(--font-sans);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
   display: flex;
@@ -1246,64 +1366,184 @@ a {
   gap: 6px;
 }
 
-/* ─────────────────────────── Clean Flat Modals ─────────────────────────── */
+/* ─────────────────────────── Premium Modals ─────────────────────────── */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(3, 5, 10, 0.4);
+  background: var(--overlay);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
   display: grid;
   place-items: center;
   z-index: 100;
   padding: 20px;
+  animation: fadeIn 0.2s ease forwards;
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .modal {
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  border-radius: calc(var(--radius) * 1.5);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   max-height: 90vh;
-  overflow-y: auto;
-  animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
+
+/* Subtle top gradient line for depth */
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.6;
+  z-index: 10;
+}
+
+/* ─────────────────────────── Split-Panel Modal Overhaul ─────────────────────────── */
+.modal-split {
+  flex-direction: row;
+  max-width: 860px; /* Wider for split view */
+  min-height: 500px;
+}
+.modal-left-panel {
+  width: 280px;
+  background: linear-gradient(145deg, var(--primary-green), var(--primary-green-dark));
+  color: #fff;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: calc(var(--radius) * 1.5) 0 0 calc(var(--radius) * 1.5);
+}
+/* Decorative abstract shapes */
+.modal-left-panel::after {
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  right: -40px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+}
+.modal-left-panel::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mlp-content {
+  position: relative;
+  z-index: 2;
+}
+.mlp-icon {
+  width: 64px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+.mlp-title {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  letter-spacing: -0.02em;
+}
+.mlp-desc {
+  font-size: 13.5px;
+  opacity: 0.75;
+  line-height: 1.5;
+}
+
+.modal-right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border-radius: 0 calc(var(--radius) * 1.5) calc(var(--radius) * 1.5) 0;
+  overflow: hidden;
+}
+
 .modal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
+  padding: 24px 32px 20px;
+  border-bottom: 1px solid var(--surface-hover);
+  flex-shrink: 0;
 }
+
 .modal-head h3 {
   font-family: var(--font-heading);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
+
 .modal-body {
-  padding: 24px;
+  padding: 24px 32px;
+  overflow-y: auto;
 }
+
 .modal-foot {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 24px;
+  gap: 12px;
+  padding: 20px 32px;
+  background: var(--surface-hover);
   border-top: 1px solid var(--border);
+  border-radius: 0 0 calc(var(--radius) * 2) calc(var(--radius) * 2);
+  flex-shrink: 0;
 }
+
 .modal-x {
-  background: none;
-  border: none;
-  color: var(--text-faint);
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   cursor: pointer;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
+  transition: all 0.25s ease;
 }
+
 .modal-x:hover {
-  background: var(--surface-hover);
-  color: var(--text);
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+  transform: rotate(90deg);
 }
 
 /* ─────────────────────────── Login Layout Overhaul (Image 1) ─────────────────────────── */
@@ -1525,6 +1765,10 @@ a {
 @keyframes chartGrowY {
   0% { transform: scaleY(0); }
   100% { transform: scaleY(1); }
+}
+@keyframes appFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 .big-total {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth, type UserRole, type User } from '../context/AuthContext';
 import client from '../api/client';
 import { ALL_ROLES, ROLE_LABELS, ROLE_SCOPE } from '../lib/roles';
+import { CustomSelect } from '../components/ui';
 
 const DEMO: Record<UserRole, { email: string; pass: string; name: string }> = {
   superadmin:        { email: 'admin@transitops.com',    pass: 'admin123',   name: 'Root Admin' },
@@ -119,9 +120,11 @@ export const LoginPage: React.FC = () => {
           </div>
           <div className="field">
             <label>Role (scopes your access)</label>
-            <select className="select" value={role} onChange={(e) => pickRole(e.target.value as UserRole)}>
-              {ALL_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-            </select>
+            <CustomSelect 
+              value={role} 
+              onChange={(v) => pickRole(v as UserRole)}
+              options={ALL_ROLES.map(r => ({ value: r, label: ROLE_LABELS[r] }))}
+            />
           </div>
 
           <div className="flex items-center" style={{ justifyContent: 'space-between', margin: '4px 0 18px' }}>
