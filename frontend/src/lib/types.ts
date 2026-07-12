@@ -1,5 +1,13 @@
 // Shared entity types (align with backend schemas). Frontend contract.
 
+export interface VehicleDoc {
+  id: string;
+  label: 'RC' | 'Insurance' | 'Permit' | string;
+  filename: string;
+  dataUrl: string; // local preview; backend should store the file and return a URL instead
+  uploaded_at: string;
+}
+
 export interface Vehicle {
   id: string;
   registration_number: string;
@@ -10,6 +18,7 @@ export interface Vehicle {
   acquisition_cost: number;
   status: 'Available' | 'On Trip' | 'In Shop' | 'Retired' | string;
   region?: string | null;
+  documents?: VehicleDoc[];
 }
 
 export interface Driver {
@@ -39,6 +48,7 @@ export interface Trip {
   eta?: string | null;
   final_odometer?: number | null;
   fuel_consumed?: number | null;
+  revenue?: number | null; // entered on completion; drives real ROI on Reports
   note?: string | null;
 }
 

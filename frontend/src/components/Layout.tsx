@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useData } from '../lib/useData';
+import { buildNotifications, type Notice } from '../lib/notifications';
+import { demoVehicles, demoDrivers, demoTrips, demoMaintenance } from '../lib/demo';
+import type { Vehicle, Driver, Trip, Maintenance } from '../lib/types';
 import { roleLabel, type Section } from '../lib/roles';
 import {
   IconDashboard, IconTruck, IconUsers, IconRoute, IconWrench, IconFuel,
-  IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconLogout,
+  IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconLogout, IconMenu, IconClose,
 } from './Icons';
 
 interface NavItem { path: string; label: string; icon: React.FC<{ size?: number }>; section?: Section; }
@@ -26,15 +30,30 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
-  // Mockup shows the full nav for every role; access is scoped inside each page (view vs edit).
+  const { data: vehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
+  const { data: drivers } = useData<Driver[]>('/drivers', demoDrivers);
+  const { data: trips } = useData<Trip[]>('/trips', demoTrips);
+  const { data: maint } = useData<Maintenance[]>('/maintenance', demoMaintenance);
+  const notices: Notice[] = buildNotifications(
+    Array.isArray(vehicles) ? vehicles : demoVehicles,
+    Array.isArray(drivers) ? drivers : demoDrivers,
+    Array.isArray(trips) ? trips : demoTrips,
+    Array.isArray(maint) ? maint : demoMaintenance,
+  );
+
   const visible = NAV;
   const current = NAV.find((n) => n.path === location.pathname);
   const initials = (user?.name || 'U').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
+  const closeMobile = () => setMobileOpen(false);
+
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {mobileOpen && <div className="sidebar-backdrop open" onClick={closeMobile} />}
+      <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <div className="brand-mark">T</div>
           <div className="brand-text">
@@ -48,7 +67,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             const Icon = n.icon;
             const active = location.pathname === n.path;
             return (
-              <Link key={n.path} to={n.path} className={`nav-link ${active ? 'active' : ''}`}>
+              <Link key={n.path} to={n.path} className={`nav-link ${active ? 'active' : ''}`} onClick={closeMobile}>
                 <Icon size={18} />{n.label}
               </Link>
             );
@@ -59,13 +78,35 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       <div className="main">
         <header className="topbar">
+          <button className="icon-btn hamburger" onClick={() => setMobileOpen((v) => !v)} title="Menu">
+            {mobileOpen ? <IconClose size={17} /> : <IconMenu size={17} />}
+          </button>
           <div className="topbar-title">{current?.label || 'TransitOps'}</div>
           <div className="search-box">
             <IconSearch size={15} />
             <input placeholder="Search…" />
           </div>
           <div className="topbar-spacer" />
-          <button className="icon-btn" title="Notifications"><IconBell size={17} /><span className="dot" /></button>
+          <div className="notif-wrap">
+            <button className="icon-btn" title="Notifications" onClick={() => setNotifOpen((v) => !v)}>
+              <IconBell size={17} />{notices.length > 0 && <span className="dot" />}
+            </button>
+            {notifOpen && (
+              <div className="notif-panel" onMouseLeave={() => setNotifOpen(false)}>
+                <div className="notif-head">Notifications ({notices.length})</div>
+                {notices.length === 0 && <div className="notif-empty">All clear — no alerts.</div>}
+                {notices.map((n) => (
+                  <div className="notif-item" key={n.id}>
+                    <span className="notif-dot" style={{ background: `var(--${n.severity})` }} />
+                    <div>
+                      <div className="notif-title">{n.title}</div>
+                      <div className="notif-detail">{n.detail}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <button className="icon-btn" onClick={toggle} title="Toggle theme">
             {theme === 'dark' ? <IconSun size={17} /> : <IconMoon size={17} />}
           </button>

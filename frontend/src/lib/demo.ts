@@ -22,7 +22,7 @@ export const demoDrivers: Driver[] = [
 
 export const demoTrips: Trip[] = [
   { id: 't1', code: 'TR001', source: 'Gandhinagar Depot', destination: 'Ahmedabad Hub',    vehicle_label: 'VAN-05',   driver_label: 'Alex',   cargo_weight_kg: 450, planned_distance_km: 32, status: 'Dispatched', eta: '45 min' },
-  { id: 't2', code: 'TR002', source: 'Rajkot Yard',       destination: 'Surat Center',      vehicle_label: 'TRUCK-11', driver_label: 'John',   cargo_weight_kg: 4200, planned_distance_km: 245, status: 'Completed', eta: null, final_odometer: 182000, fuel_consumed: 110 },
+  { id: 't2', code: 'TR002', source: 'Rajkot Yard',       destination: 'Surat Center',      vehicle_label: 'TRUCK-11', driver_label: 'John',   cargo_weight_kg: 4200, planned_distance_km: 245, status: 'Completed', eta: null, final_odometer: 182000, fuel_consumed: 110, revenue: 42000 },
   { id: 't3', code: 'TR003', source: 'Vadodara',          destination: 'Anand',             vehicle_label: 'MINI-03',  driver_label: 'Priya',  cargo_weight_kg: 800, planned_distance_km: 40, status: 'Dispatched', eta: '1h 10m' },
   { id: 't4', code: 'TR004', source: 'Vatva Industrial Area', destination: 'Sanand Warehouse', vehicle_label: null,   driver_label: 'Suresh', cargo_weight_kg: 0, planned_distance_km: 55, status: 'Draft', eta: null, note: 'Awaiting vehicle' },
   { id: 't6', code: 'TR006', source: 'Mansa',             destination: 'Kalol Depot',       vehicle_label: null,      driver_label: null,     cargo_weight_kg: 0, planned_distance_km: 28, status: 'Cancelled', eta: null, note: 'Vehicle went to shop' },

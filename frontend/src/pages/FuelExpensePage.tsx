@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../lib/useData';
+import { useSort } from '../lib/useSort';
 import { demoFuel, demoExpenses, demoVehicles } from '../lib/demo';
 import type { FuelLog, Expense, Vehicle } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { fmtNum, fmtDate } from '../lib/status';
-import { PageHead, Modal, exportCsv } from '../components/ui';
+import { PageHead, Modal, exportCsv, Th } from '../components/ui';
 import { IconPlus, IconDownload } from '../components/Icons';
 
 type ModalKind = 'fuel' | 'expense' | null;
@@ -20,6 +21,8 @@ export const FuelExpensePage: React.FC = () => {
   const fuelRows = Array.isArray(fuelData) ? fuelData : demoFuel;
   const expRows = Array.isArray(expData) ? expData : demoExpenses;
   const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
+  const fuelSort = useSort<FuelLog>(fuelRows);
+  const expSort = useSort<Expense>(expRows);
 
   const [modal, setModal] = useState<ModalKind>(null);
   const [f, setF] = useState<FuelLog>({ id: '', vehicle_label: '', date: new Date().toISOString().slice(0, 10), liters: 0, fuel_cost: 0 });
@@ -59,9 +62,14 @@ export const FuelExpensePage: React.FC = () => {
         <div className="card-head"><h3>Fuel Logs</h3></div>
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Vehicle</th><th>Date</th><th>Liters</th><th>Fuel Cost</th></tr></thead>
+            <thead><tr>
+              <Th label="Vehicle" arrow={fuelSort.arrow('vehicle_label')} onClick={() => fuelSort.toggle('vehicle_label')} />
+              <Th label="Date" arrow={fuelSort.arrow('date')} onClick={() => fuelSort.toggle('date')} />
+              <Th label="Liters" arrow={fuelSort.arrow('liters')} onClick={() => fuelSort.toggle('liters')} />
+              <Th label="Fuel Cost" arrow={fuelSort.arrow('fuel_cost')} onClick={() => fuelSort.toggle('fuel_cost')} />
+            </tr></thead>
             <tbody>
-              {fuelRows.map((r) => (
+              {fuelSort.sorted.map((r) => (
                 <tr key={r.id}><td className="mono td-strong">{r.vehicle_label}</td><td className="text-muted">{fmtDate(r.date)}</td><td>{r.liters} L</td><td>₹{fmtNum(r.fuel_cost)}</td></tr>
               ))}
             </tbody>
@@ -73,9 +81,16 @@ export const FuelExpensePage: React.FC = () => {
         <div className="card-head"><h3>Other Expenses (Toll / Misc)</h3></div>
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Trip</th><th>Vehicle</th><th>Toll</th><th>Other Misc</th><th>Maint. (linked)</th><th>Total</th></tr></thead>
+            <thead><tr>
+              <Th label="Trip" arrow={expSort.arrow('trip_code')} onClick={() => expSort.toggle('trip_code')} />
+              <Th label="Vehicle" arrow={expSort.arrow('vehicle_label')} onClick={() => expSort.toggle('vehicle_label')} />
+              <Th label="Toll" arrow={expSort.arrow('toll')} onClick={() => expSort.toggle('toll')} />
+              <Th label="Other Misc" arrow={expSort.arrow('other_misc')} onClick={() => expSort.toggle('other_misc')} />
+              <th>Maint. (linked)</th>
+              <Th label="Total" arrow={expSort.arrow('total')} onClick={() => expSort.toggle('total')} />
+            </tr></thead>
             <tbody>
-              {expRows.map((r) => (
+              {expSort.sorted.map((r) => (
                 <tr key={r.id}>
                   <td className="mono">{r.trip_code}</td><td className="mono">{r.vehicle_label}</td>
                   <td>₹{fmtNum(r.toll)}</td><td>₹{fmtNum(r.other_misc)}</td><td>₹{fmtNum(r.maintenance_cost)}</td>

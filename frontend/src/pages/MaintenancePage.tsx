@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../lib/useData';
+import { useSort } from '../lib/useSort';
 import { demoMaintenance, demoVehicles } from '../lib/demo';
 import type { Maintenance, Vehicle } from '../lib/types';
-import { canEdit } from '../lib/roles';
+import { canEdit, roleLabel } from '../lib/roles';
 import { fmtNum, fmtDate } from '../lib/status';
-import { PageHead, Badge } from '../components/ui';
+import { logActivity } from '../lib/activity';
+import { PageHead, Badge, Th } from '../components/ui';
 import { IconAlert, IconCheck } from '../components/Icons';
 
 export const MaintenancePage: React.FC = () => {
@@ -16,6 +18,7 @@ export const MaintenancePage: React.FC = () => {
   const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
   const rows = Array.isArray(logs) ? logs : demoMaintenance;
   const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
+  const { sorted, toggle, arrow } = useSort<Maintenance>(rows);
 
   const [vehicle, setVehicle] = useState('');
   const [service, setService] = useState('');
@@ -30,6 +33,7 @@ export const MaintenancePage: React.FC = () => {
     setLogs([rec, ...rows]);
     // cascade: Active -> vehicle In Shop
     if (status === 'Active') setVehicles(vehRows.map((v) => (v.registration_number === vehicle ? { ...v, status: 'In Shop' } : v)));
+    logActivity({ actor: user?.name || 'Unknown', role: roleLabel(user?.role), entity: 'Maintenance', entityLabel: vehicle, action: `${service} logged (${status})`, detail: status === 'Active' ? 'Vehicle → In Shop' : undefined });
     setVehicle(''); setService(''); setCost(0);
     try { await client.post('/maintenance', { vehicle_label: vehicle, service_type: service, cost, date, status }); } catch { /* offline demo */ }
   };
@@ -37,6 +41,7 @@ export const MaintenancePage: React.FC = () => {
   const toggleClose = async (m: Maintenance) => {
     const nextStatus = m.status === 'Active' ? 'Closed' : 'Active';
     setLogs(rows.map((x) => (x.id === m.id ? { ...x, status: nextStatus } : x)));
+    logActivity({ actor: user?.name || 'Unknown', role: roleLabel(user?.role), entity: 'Maintenance', entityLabel: m.vehicle_label, action: nextStatus === 'Closed' ? 'Closed' : 'Reopened', detail: nextStatus === 'Closed' ? 'Vehicle → Available (unless Retired)' : 'Vehicle → In Shop' });
     // Closing -> vehicle Available (unless Retired); reopening -> In Shop
     setVehicles(vehRows.map((v) => {
       if (v.registration_number !== m.vehicle_label || v.status === 'Retired') return v;
@@ -80,9 +85,16 @@ export const MaintenancePage: React.FC = () => {
           <div className="card-head"><h3>Service Log</h3></div>
           <div className="table-wrap">
             <table className="table">
-              <thead><tr><th>Vehicle</th><th>Service</th><th>Cost</th><th>Date</th><th>Status</th>{editable && <th></th>}</tr></thead>
+              <thead><tr>
+                <Th label="Vehicle" arrow={arrow('vehicle_label')} onClick={() => toggle('vehicle_label')} />
+                <Th label="Service" arrow={arrow('service_type')} onClick={() => toggle('service_type')} />
+                <Th label="Cost" arrow={arrow('cost')} onClick={() => toggle('cost')} />
+                <Th label="Date" arrow={arrow('date')} onClick={() => toggle('date')} />
+                <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
+                {editable && <th></th>}
+              </tr></thead>
               <tbody>
-                {rows.map((m) => (
+                {sorted.map((m) => (
                   <tr key={m.id}>
                     <td className="mono td-strong">{m.vehicle_label}</td>
                     <td>{m.service_type}</td>

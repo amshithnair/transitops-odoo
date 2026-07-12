@@ -84,6 +84,10 @@ export const Modal: React.FC<{ title: string; onClose: () => void; children: Rea
   </div>
 );
 
+/* ── Sortable table header cell ── */
+export const Th: React.FC<{ label: string; active?: boolean; arrow?: string; onClick?: () => void }> = ({ label, active, arrow, onClick }) =>
+  onClick ? <th><span className="th-sort" onClick={onClick} style={active ? { color: 'var(--text)' } : undefined}>{label}<span className="arrow">{arrow}</span></span></th> : <th>{label}</th>;
+
 /* ── Loading spinner ── */
 export const Loader: React.FC = () => <div className="center-load"><div className="spinner" /></div>;
 

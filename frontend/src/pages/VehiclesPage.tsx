@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData, filterBy } from '../lib/useData';
+import { useSort } from '../lib/useSort';
 import { demoVehicles } from '../lib/demo';
 import type { Vehicle } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { fmtNum } from '../lib/status';
-import { PageHead, Badge, Modal, exportCsv } from '../components/ui';
-import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert } from '../components/Icons';
+import { PageHead, Badge, Modal, exportCsv, Th } from '../components/ui';
+import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert, IconFile, IconUpload } from '../components/Icons';
 
 const blank = (): Vehicle => ({ id: '', registration_number: '', name_model: '', type: 'Van', max_load_capacity_kg: 500, odometer_km: 0, acquisition_cost: 0, status: 'Available', region: '' });
 
@@ -26,6 +27,7 @@ export const VehiclesPage: React.FC = () => {
   const filtered = filterBy(rows, q, ['registration_number', 'name_model'])
     .filter((v) => !type || v.type === type)
     .filter((v) => !status || v.status === status);
+  const { sorted, toggle, arrow } = useSort<Vehicle>(filtered);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,9 +73,18 @@ export const VehiclesPage: React.FC = () => {
       <div className="card">
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Reg. No.</th><th>Name / Model</th><th>Type</th><th>Capacity</th><th>Odometer</th><th>Acq. Cost</th><th>Status</th>{editable && <th></th>}</tr></thead>
+            <thead><tr>
+              <Th label="Reg. No." arrow={arrow('registration_number')} onClick={() => toggle('registration_number')} />
+              <Th label="Name / Model" arrow={arrow('name_model')} onClick={() => toggle('name_model')} />
+              <Th label="Type" arrow={arrow('type')} onClick={() => toggle('type')} />
+              <Th label="Capacity" arrow={arrow('max_load_capacity_kg')} onClick={() => toggle('max_load_capacity_kg')} />
+              <Th label="Odometer" arrow={arrow('odometer_km')} onClick={() => toggle('odometer_km')} />
+              <Th label="Acq. Cost" arrow={arrow('acquisition_cost')} onClick={() => toggle('acquisition_cost')} />
+              <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
+              {editable && <th></th>}
+            </tr></thead>
             <tbody>
-              {filtered.map((v) => (
+              {sorted.map((v) => (
                 <tr key={v.id}>
                   <td className="mono td-strong">{v.registration_number}</td>
                   <td>{v.name_model}</td>
@@ -111,6 +122,33 @@ export const VehiclesPage: React.FC = () => {
             <div className="field-row">
               <div className="field"><label>Status</label><select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option></select></div>
               <div className="field"><label>Region</label><input className="input" value={form.region || ''} onChange={(e) => setForm({ ...form, region: e.target.value })} placeholder="North" /></div>
+            </div>
+
+            <div className="field">
+              <label>Documents (RC / Insurance / Permit)</label>
+              <div className="flex gap-8" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
+                {(form.documents || []).map((d) => (
+                  <span className="badge b-blue" key={d.id}><IconFile size={11} />{d.label}: {d.filename}</span>
+                ))}
+                {(!form.documents || form.documents.length === 0) && <span className="text-faint" style={{ fontSize: 12 }}>No documents uploaded yet.</span>}
+              </div>
+              <div className="field-row">
+                {(['RC', 'Insurance', 'Permit'] as const).map((label) => (
+                  <label key={label} className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+                    <IconUpload size={13} />{label}
+                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => {
+                      const file = e.target.files?.[0]; if (!file || !form) return;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const doc = { id: `doc${Date.now()}`, label, filename: file.name, dataUrl: String(reader.result), uploaded_at: new Date().toISOString() };
+                        setForm({ ...form, documents: [...(form.documents || []).filter((d) => d.label !== label), doc] });
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = '';
+                    }} />
+                  </label>
+                ))}
+              </div>
             </div>
           </form>
         </Modal>

@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData, filterBy } from '../lib/useData';
+import { useSort } from '../lib/useSort';
 import { demoDrivers } from '../lib/demo';
 import type { Driver } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { safetyColor, expiryInfo, fmtDate } from '../lib/status';
-import { PageHead, Badge, ColorBadge, Modal, exportCsv } from '../components/ui';
+import { PageHead, Badge, ColorBadge, Modal, exportCsv, Th } from '../components/ui';
 import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert } from '../components/Icons';
 
 const DRIVER_STATUSES = ['Available', 'On Trip', 'Off Duty', 'Suspended'];
@@ -25,6 +26,7 @@ export const DriversPage: React.FC = () => {
   const [err, setErr] = useState<string | null>(null);
 
   const filtered = filterBy(rows, q, ['name', 'license_number', 'license_category']);
+  const { sorted, toggle, arrow } = useSort<Driver>(filtered);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,9 +75,19 @@ export const DriversPage: React.FC = () => {
       <div className="card">
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Driver</th><th>License No.</th><th>Category</th><th>Expiry</th><th>Contact</th><th>Trip Compl.</th><th>Safety</th><th>Status</th>{editable && <th></th>}</tr></thead>
+            <thead><tr>
+              <Th label="Driver" arrow={arrow('name')} onClick={() => toggle('name')} />
+              <Th label="License No." arrow={arrow('license_number')} onClick={() => toggle('license_number')} />
+              <Th label="Category" arrow={arrow('license_category')} onClick={() => toggle('license_category')} />
+              <Th label="Expiry" arrow={arrow('license_expiry')} onClick={() => toggle('license_expiry')} />
+              <th>Contact</th>
+              <Th label="Trip Compl." arrow={arrow('trip_completion_pct')} onClick={() => toggle('trip_completion_pct')} />
+              <Th label="Safety" arrow={arrow('safety_score')} onClick={() => toggle('safety_score')} />
+              <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
+              {editable && <th></th>}
+            </tr></thead>
             <tbody>
-              {filtered.map((d) => {
+              {sorted.map((d) => {
                 const exp = expiryInfo(d.license_expiry);
                 return (
                   <tr key={d.id} className={exp.expired ? 'row-danger' : ''} onClick={() => editable && setSelected(d.id)} style={{ cursor: editable ? 'pointer' : 'default', outline: selected === d.id ? '2px solid var(--accent)' : 'none', outlineOffset: -2 }}>
