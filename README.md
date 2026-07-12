@@ -624,9 +624,9 @@ Interactive docs at **[localhost:8000/docs](http://localhost:8000/docs)** (Swagg
 
 | Role | Focus Areas |
 |:----:|-------------|
-| **🎯 Lead** | System design · Auth + RBAC · Trip lifecycle · Maintenance workflow · Digital Vehicle Passport · Predictive Maintenance · Security audit · QA |
-| **⚙️ Backend Dev** | Vehicle Registry · Driver Management · Fuel & Expense · Dashboard KPIs · Reports & CSV · AI Dispatch · Fleet Map |
-| **🎨 Frontend Dev** | All React pages · AuthContext · Axios client · RBAC-aware routing · KPI charts · Region cards |
+| **Amshith Nair** | System design · Auth + RBAC · Trip lifecycle · Maintenance workflow · Digital Vehicle Passport · Predictive Maintenance · Security audit · QA |
+| **Madhav Dave** | Vehicle Registry · Driver Management · Fuel & Expense · Dashboard KPIs · Reports & CSV · AI Dispatch · Fleet Map |
+| **Hardil Desai** | All React pages · AuthContext · Axios client · RBAC-aware routing · KPI charts · Region cards |
 
 </div>
 
