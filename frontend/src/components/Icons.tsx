@@ -33,3 +33,6 @@ export const IconMenu = (p: P) => <S {...p} body={<><path d="M3 6h18M3 12h18M3 1
 export const IconFile = (p: P) => <S {...p} body={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></>} />;
 export const IconUpload = (p: P) => <S {...p} body={<><path d="M12 21V9" /><path d="m7 13 5-5 5 5" /><path d="M4 21h16" /></>} />;
 export const IconActivity = (p: P) => <S {...p} body={<path d="M22 12h-4l-3 9L9 3l-3 9H2" />} />;
+export const IconArrowLeft = (p: P) => <S {...p} body={<path d="M19 12H5M12 19l-7-7 7-7" />} />;
+export const IconCalendar = (p: P) => <S {...p} body={<><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>} />;
+
