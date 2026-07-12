@@ -46,6 +46,9 @@ export const demoExpenses: Expense[] = [
 ];
 
 export const demoKpis: KPIs = {
+  total_vehicles: 68,
+  total_drivers: 45,
+  available_drivers: 19,
   active_vehicles: 53,
   available_vehicles: 42,
   vehicles_in_maintenance: 5,
@@ -53,6 +56,15 @@ export const demoKpis: KPIs = {
   pending_trips: 9,
   drivers_on_duty: 26,
   fleet_utilization_pct: 81,
+  total_fuel_cost: 125000,
+  monthly_expense: 45000,
+  average_mileage: 8.5,
+  vehicle_status_breakdown: [
+    { label: 'Available', value: 42, color: 'var(--green)' },
+    { label: 'On Trip',   value: 18, color: 'var(--blue)' },
+    { label: 'In Shop',   value: 5,  color: 'var(--amber)' },
+    { label: 'Retired',   value: 3,  color: 'var(--red)' },
+  ],
 };
 
 // Vehicle status breakdown for dashboard bars

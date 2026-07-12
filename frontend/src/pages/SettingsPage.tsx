@@ -28,8 +28,8 @@ export const SettingsPage: React.FC = () => {
 
   const mark = (a: string) =>
     a === 'crud' ? <span className="rbac-mark rbac-crud">✓</span>
-    : a === 'view' ? <span className="rbac-view">view</span>
-    : <span className="rbac-none">—</span>;
+      : a === 'view' ? <span className="rbac-view">view</span>
+        : <span className="rbac-none">—</span>;
 
   const filteredLog = entityFilter ? log.filter((e) => e.entityLabel.toLowerCase().includes(entityFilter.toLowerCase())) : log;
 

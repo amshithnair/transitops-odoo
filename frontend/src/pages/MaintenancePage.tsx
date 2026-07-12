@@ -14,7 +14,7 @@ import { IconAlert, IconCheck } from '../components/Icons';
 export const MaintenancePage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'fleet');
-  const { data: logs, setData: setLogs } = useData<Maintenance[]>('/maintenance', demoMaintenance);
+  const { data: logs, setData: setLogs, loading, error } = useData<Maintenance[]>('/maintenance', demoMaintenance);
   const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
   const rows = Array.isArray(logs) ? logs : demoMaintenance;
   const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
@@ -35,7 +35,6 @@ export const MaintenancePage: React.FC = () => {
     if (status === 'Active') setVehicles(vehRows.map((v) => (v.registration_number === vehicle ? { ...v, status: 'In Shop' } : v)));
     logActivity({ actor: user?.name || 'Unknown', role: roleLabel(user?.role), entity: 'Maintenance', entityLabel: vehicle, action: `${service} logged (${status})`, detail: status === 'Active' ? 'Vehicle → In Shop' : undefined });
     setVehicle(''); setService(''); setCost(0);
-    try { await client.post('/maintenance', { vehicle_label: vehicle, service_type: service, cost, date, status }); } catch { /* offline demo */ }
   };
 
   const toggleClose = async (m: Maintenance) => {
@@ -77,40 +76,42 @@ export const MaintenancePage: React.FC = () => {
             <button className="btn btn-primary btn-block" disabled={!editable}>Save Record</button>
           </form>
 
-          <div className="mt-24" style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-            <div className="flex items-center gap-8" style={{ marginBottom: 8 }}><span className="badge b-amber">Active</span> → <span className="badge b-amber">Vehicle: In Shop</span></div>
-            <div className="flex items-center gap-8"><span className="badge b-green">Closed</span> → <span className="badge b-green">Vehicle: Available</span> <span className="text-faint">(unless Retired)</span></div>
-            <div className="rule-note"><IconAlert size={14} />In Shop vehicles are removed from the dispatch pool.</div>
-          </div>
-        </div>
+              <div className="mt-24" style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                <div className="flex items-center gap-8" style={{ marginBottom: 8 }}><span className="badge b-amber">Active</span> → <span className="badge b-amber">Vehicle: In Shop</span></div>
+                <div className="flex items-center gap-8"><span className="badge b-green">Closed</span> → <span className="badge b-green">Vehicle: Available</span> <span className="text-faint">(unless Retired)</span></div>
+                <div className="rule-note"><IconAlert size={14} />In Shop vehicles are removed from the dispatch pool.</div>
+              </div>
+            </div>
 
-        <div className="card">
-          <div className="card-head"><h3>Service Log</h3></div>
-          <div className="table-wrap">
-            <table className="table">
-              <thead><tr>
-                <Th label="Vehicle" arrow={arrow('vehicle_label')} onClick={() => toggle('vehicle_label')} />
-                <Th label="Service" arrow={arrow('service_type')} onClick={() => toggle('service_type')} />
-                <Th label="Cost" arrow={arrow('cost')} onClick={() => toggle('cost')} />
-                <Th label="Date" arrow={arrow('date')} onClick={() => toggle('date')} />
-                <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
-                {editable && <th></th>}
-              </tr></thead>
-              <tbody>
-                {sorted.map((m) => (
-                  <tr key={m.id}>
-                    <td className="mono td-strong">{m.vehicle_label}</td>
-                    <td>{m.service_type}</td>
-                    <td>₹{fmtNum(m.cost)}</td>
-                    <td className="text-muted">{fmtDate(m.date)}</td>
-                    <td><Badge status={m.status} /></td>
-                    {editable && <td><button className="btn btn-ghost btn-sm" onClick={() => toggleClose(m)}>{m.status === 'Active' ? <><IconCheck size={13} />Close</> : 'Reopen'}</button></td>}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+            <div className="card">
+              <div className="card-head"><h3>Service Log</h3></div>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead><tr>
+                    <Th label="Vehicle" arrow={arrow('vehicle_label')} onClick={() => toggle('vehicle_label')} />
+                    <Th label="Service" arrow={arrow('service_type')} onClick={() => toggle('service_type')} />
+                    <Th label="Cost" arrow={arrow('cost')} onClick={() => toggle('cost')} />
+                    <Th label="Date" arrow={arrow('date')} onClick={() => toggle('date')} />
+                    <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
+                    {editable && <th></th>}
+                  </tr></thead>
+                  <tbody>
+                    {sorted.map((m) => (
+                      <tr key={m.id}>
+                        <td className="mono td-strong">{m.vehicle_label}</td>
+                        <td>{m.service_type}</td>
+                        <td>₹{fmtNum(m.cost)}</td>
+                        <td className="text-muted">{fmtDate(m.date)}</td>
+                        <td><Badge status={m.status} /></td>
+                        {editable && <td><button className="btn btn-ghost btn-sm" onClick={() => toggleClose(m)}>{m.status === 'Active' ? <><IconCheck size={13} />Close</> : 'Reopen'}</button></td>}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </>
   );

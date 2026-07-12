@@ -3,7 +3,7 @@ TransitOps — FastAPI application entrypoint.
 
 - CORS scoped to FRONTEND_URL (design decision #5)
 - Lifespan: creates all tables + runs idempotent seed on startup
-- Includes all 8 routers with proper tags
+- Includes all 10 routers with proper tags
 """
 
 from contextlib import asynccontextmanager
@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base, SessionLocal
 from app.seed import seed_database
-from app.routers import auth, vehicles, drivers, trips, maintenance, fuel_expense, dashboard, reports
+from app.routers import auth, vehicles, drivers, trips, maintenance, fuel_expense, dashboard, reports, dispatch, map
 
 
 @asynccontextmanager
@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="TransitOps API",
     description="Fleet operations platform — manage vehicles, drivers, trips, "
-                "maintenance, fuel, expenses, and reports.",
+                "maintenance, fuel, expenses, reports, AI dispatch, and fleet map.",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -59,6 +59,8 @@ app.include_router(maintenance.router)
 app.include_router(fuel_expense.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
+app.include_router(dispatch.router)
+app.include_router(map.router)
 
 
 @app.get("/", tags=["Health"])

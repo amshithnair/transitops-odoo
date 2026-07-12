@@ -10,17 +10,34 @@ import { fmtNum } from '../lib/status';
 import { PageHead, Badge, Modal, exportCsv, Th, CustomSelect } from '../components/ui';
 import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert, IconFile, IconUpload, IconTruck } from '../components/Icons';
 
+const FUEL_TYPES = ['Diesel', 'Petrol', 'CNG', 'Electric'];
+const VEH_TYPES = ['Van', 'Truck', 'Mini'];
+const VEH_STATUSES = ['Available', 'On Trip', 'In Shop', 'Retired'];
+
 const blank = (): Vehicle => ({ id: '', registration_number: '', name_model: '', type: 'Van', max_load_capacity_kg: 500, odometer_km: 0, acquisition_cost: 0, status: 'Available', region: '' });
 
 export const VehiclesPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'fleet');
-  const { data, loading, reload, setData } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const rows = Array.isArray(data) ? data : demoVehicles;
 
   const [q, setQ] = useState('');
   const [type, setType] = useState('');
-  const [status, setStatus] = useState('');
+  const [statusF, setStatusF] = useState('');
+  const [fuelType, setFuelType] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
+  const params: Record<string, unknown> = { page, page_size: pageSize };
+  if (type) params.type = type;
+  if (statusF) params.status = statusF;
+  if (fuelType) params.fuel_type = fuelType;
+  if (q) params.search = q;
+
+  const { data, loading, reload } = useData<Vehicle[]>('/vehicles', demoVehicles);
+
+  const rows = Array.isArray(data) ? data : demoVehicles;
+  const total = rows.length;
+
   const [form, setForm] = useState<Vehicle | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -33,32 +50,26 @@ export const VehiclesPage: React.FC = () => {
     e.preventDefault();
     if (!form) return;
     setErr(null);
-    // client-side uniqueness guard (server also enforces)
-    const dupe = rows.some((v) => v.registration_number.toLowerCase() === form.registration_number.toLowerCase() && v.id !== form.id);
-    if (dupe) { setErr(`Registration number "${form.registration_number}" already exists.`); return; }
     try {
       if (form.id) await client.put(`/vehicles/${form.id}`, form);
       else await client.post('/vehicles', form);
       setForm(null); reload();
     } catch (e2: unknown) {
       const r = e2 as { response?: { data?: { detail?: string } } };
-      if (r.response) { setErr(r.response.data?.detail || 'Save failed.'); return; }
-      // offline demo: mutate locally
-      setData(form.id ? rows.map((v) => (v.id === form.id ? form : v)) : [...rows, { ...form, id: `v${Date.now()}` }]);
-      setForm(null);
+      setErr(r.response?.data?.detail || 'Save failed.');
     }
   };
 
   const remove = async (v: Vehicle) => {
     if (!confirm(`Remove ${v.registration_number}?`)) return;
     try { await client.delete(`/vehicles/${v.id}`); reload(); }
-    catch { setData(rows.filter((x) => x.id !== v.id)); }
+    catch { /* already deleted or offline */ }
   };
 
   return (
     <>
-      <PageHead title="Vehicle Registry" sub={`${rows.length} vehicles in fleet`}>
-        <button className="btn btn-ghost" onClick={() => exportCsv('vehicles.csv', filtered as unknown as Record<string, unknown>[])}><IconDownload size={15} />CSV</button>
+      <PageHead title="Vehicle Registry" sub={`${total} vehicles in fleet`}>
+        <button className="btn btn-ghost" onClick={() => exportCsv('vehicles.csv', rows as unknown as Record<string, unknown>[])}><IconDownload size={15} />CSV</button>
         {editable && <button className="btn btn-primary" onClick={() => { setErr(null); setForm(blank()); }}><IconPlus size={15} />Add Vehicle</button>}
       </PageHead>
 
@@ -115,13 +126,15 @@ export const VehiclesPage: React.FC = () => {
           <form id="veh-form" onSubmit={save}>
             {err && <div className="alert alert-danger">{err}</div>}
             <div className="field"><label>Registration Number (unique)</label><input className="input" required value={form.registration_number} onChange={(e) => setForm({ ...form, registration_number: e.target.value })} placeholder="VAN-05" /></div>
-            <div className="field"><label>Name / Model</label><input className="input" required value={form.name_model} onChange={(e) => setForm({ ...form, name_model: e.target.value })} placeholder="Force Traveller" /></div>
             <div className="field-row">
               <div className="field"><label>Type</label><CustomSelect value={form.type} onChange={(v) => setForm({ ...form, type: v as any })} options={['Van', 'Truck', 'Mini']} /></div>
               <div className="field"><label>Max Load (kg)</label><input className="input" type="number" min={1} required value={form.max_load_capacity_kg} onChange={(e) => setForm({ ...form, max_load_capacity_kg: +e.target.value })} /></div>
             </div>
             <div className="field-row">
+              <div className="field"><label>Max Load (kg)</label><input className="input" type="number" min={1} required value={form.max_load_capacity_kg} onChange={(e) => setForm({ ...form, max_load_capacity_kg: +e.target.value })} /></div>
               <div className="field"><label>Odometer (km)</label><input className="input" type="number" min={0} value={form.odometer_km} onChange={(e) => setForm({ ...form, odometer_km: +e.target.value })} /></div>
+            </div>
+            <div className="field-row">
               <div className="field"><label>Acquisition Cost (₹)</label><input className="input" type="number" min={0} value={form.acquisition_cost} onChange={(e) => setForm({ ...form, acquisition_cost: +e.target.value })} /></div>
             </div>
             <div className="field-row">

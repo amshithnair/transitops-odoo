@@ -98,6 +98,15 @@ class Vehicle(Base):
         Enum(VehicleStatus), default=VehicleStatus.Available
     )
     region: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    manufacturer: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    fuel_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    purchase_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    insurance_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
+    fitness_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
+    puc_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last_location_update: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -105,6 +114,7 @@ class Vehicle(Base):
     maintenance_logs: Mapped[list["MaintenanceLog"]] = relationship(back_populates="vehicle")
     fuel_logs: Mapped[list["FuelLog"]] = relationship(back_populates="vehicle")
     expenses: Mapped[list["Expense"]] = relationship(back_populates="vehicle")
+    assigned_drivers: Mapped[list["Driver"]] = relationship(back_populates="assigned_vehicle")
 
 
 class Driver(Base):
@@ -118,6 +128,11 @@ class Driver(Base):
     license_category: Mapped[str] = mapped_column(String(50), nullable=False)
     license_expiry_date: Mapped[date] = mapped_column(Date, nullable=False)
     contact_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    experience_years: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    assigned_vehicle_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("vehicles.id"), nullable=True
+    )
     safety_score: Mapped[float] = mapped_column(Float, default=100.0)
     status: Mapped[DriverStatus] = mapped_column(
         Enum(DriverStatus), default=DriverStatus.Available
@@ -126,6 +141,7 @@ class Driver(Base):
 
     # Relationships
     trips: Mapped[list["Trip"]] = relationship(back_populates="driver")
+    assigned_vehicle: Mapped["Vehicle | None"] = relationship(back_populates="assigned_drivers")
 
 
 class Trip(Base):
@@ -191,6 +207,9 @@ class FuelLog(Base):
     vehicle_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("vehicles.id"), nullable=False
     )
+    driver_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("drivers.id"), nullable=True
+    )
     trip_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("trips.id"), nullable=True
     )
@@ -201,6 +220,7 @@ class FuelLog(Base):
 
     # Relationships
     vehicle: Mapped["Vehicle"] = relationship(back_populates="fuel_logs")
+    driver: Mapped["Driver | None"] = relationship()
     trip: Mapped["Trip | None"] = relationship(back_populates="fuel_logs")
 
 
@@ -211,12 +231,17 @@ class Expense(Base):
     vehicle_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("vehicles.id"), nullable=False
     )
+    driver_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("drivers.id"), nullable=True
+    )
     category: Mapped[ExpenseCategory] = mapped_column(
         Enum(ExpenseCategory), nullable=False
     )
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     date: Mapped[date] = mapped_column(Date, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
     vehicle: Mapped["Vehicle"] = relationship(back_populates="expenses")
+    driver: Mapped["Driver | None"] = relationship()

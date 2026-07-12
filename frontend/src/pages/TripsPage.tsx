@@ -16,16 +16,18 @@ export const TripsPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'trips');
 
-  const { data: trips, setData: setTrips } = useData<Trip[]>('/trips', demoTrips);
-  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const { data: drivers, setData: setDrivers } = useData<Driver[]>('/drivers', demoDrivers);
-  const tripRows = Array.isArray(trips) ? trips : demoTrips;
-  const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
-  const drvRows = Array.isArray(drivers) ? drivers : demoDrivers;
+  const { data: tripsData, setData: setTrips, loading, error } = useData<Trip[]>('/trips', demoTrips);
+  const { data: vehData, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
+  const { data: drvData, setData: setDrivers } = useData<Driver[]>('/drivers', demoDrivers);
+
+  const tripRows = Array.isArray(tripsData) ? tripsData : demoTrips;
+  const vehRows = Array.isArray(vehData) ? vehData : demoVehicles;
+  const drvRows = Array.isArray(drvData) ? drvData : demoDrivers;
+  const rows = tripRows;
 
   // Dispatch-eligible pools (business rules): vehicles Available only; drivers Available + not expired
   const availVehicles = vehRows.filter((v) => v.status === 'Available');
-  const availDrivers = drvRows.filter((d) => d.status === 'Available' && !expiryInfo(d.license_expiry).expired);
+  const availDrivers = drvRows.filter((d) => d.status === 'Available' && d.safety_score >= 70 && !expiryInfo(d.license_expiry).expired);
 
   const [source, setSource] = useState('');
   const [dest, setDest] = useState('');
@@ -91,7 +93,6 @@ export const TripsPage: React.FC = () => {
       {!editable && <div className="view-note"><IconAlert size={15} />You have view access to Trips — contact a Dispatcher to modify.</div>}
 
       <div className="two-col">
-        {/* LEFT: lifecycle + create form */}
         <div>
           <div className="card card-pad mb-16">
             <div className="klabel mb-16">Trip Lifecycle</div>
@@ -139,8 +140,9 @@ export const TripsPage: React.FC = () => {
               <div className="field"><label>Planned Distance (km)</label><input className="input" type="number" min={0} value={dist || ''} onChange={(e) => setDist(+e.target.value)} placeholder="32" disabled={!editable} /></div>
             </div>
 
-            {/* Live capacity validation block + gauge */}
-            {veh && cargo > 0 && (
+            {loading ? <div>Loading...</div> : error ? (
+              <div className="alert alert-danger">{error}</div>
+            ) : veh && cargo > 0 ? (
               <div className={`valid-block ${capOk ? 'valid-ok' : 'valid-err'}`}>
                 <div className="vline"><span>Vehicle Capacity</span><b>{cap} kg</b></div>
                 <div className="vline"><span>Cargo Weight</span><b>{cargo} kg</b></div>
@@ -151,7 +153,7 @@ export const TripsPage: React.FC = () => {
                     : <><IconAlert size={14} />Capacity exceeded by {over} kg — dispatch blocked</>}
                 </div>
               </div>
-            )}
+            ) : null}
 
             <div className="flex gap-12 mt-8">
               <button className="btn btn-primary" disabled={!canDispatch} onClick={dispatch}>Dispatch Trip</button>
@@ -163,7 +165,7 @@ export const TripsPage: React.FC = () => {
         {/* RIGHT: live board */}
         <div className="card card-pad">
           <div className="card-title mb-20">Live Board</div>
-          {tripRows.map((t) => (
+          {rows.map((t) => (
             <div className="live-card" key={t.id}>
               <div className="live-top">
                 <span className="live-id">{t.code || t.id}</span>
@@ -182,6 +184,7 @@ export const TripsPage: React.FC = () => {
               )}
             </div>
           ))}
+          {rows.length === 0 && <div className="text-muted">No trips found.</div>}
           <div className="rule-note" style={{ marginTop: 16 }}><IconAlert size={14} />On Complete: odometer → fuel log → expense → Vehicle &amp; Driver set Available.</div>
         </div>
       </div>
