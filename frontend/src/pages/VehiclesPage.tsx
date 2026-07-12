@@ -1,311 +1,159 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useData, filterBy } from '../lib/useData';
+import { useSort } from '../lib/useSort';
+import { demoVehicles } from '../lib/demo';
+import type { Vehicle } from '../lib/types';
+import { canEdit } from '../lib/roles';
+import { fmtNum } from '../lib/status';
+import { PageHead, Badge, Modal, exportCsv, Th } from '../components/ui';
+import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert, IconFile, IconUpload } from '../components/Icons';
 
-interface Vehicle {
-  id: string;
-  registration_number: string;
-  name_model: string;
-  type: string;
-  max_load_capacity_kg: number;
-  odometer_km: number;
-  acquisition_cost: number;
-  status: string;
-  region: string | null;
-  created_at: string;
-}
+const blank = (): Vehicle => ({ id: '', registration_number: '', name_model: '', type: 'Van', max_load_capacity_kg: 500, odometer_km: 0, acquisition_cost: 0, status: 'Available', region: '' });
 
 export const VehiclesPage: React.FC = () => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { hasRole } = useAuth();
+  const { user } = useAuth();
+  const editable = canEdit(user?.role, 'fleet');
+  const { data, loading, reload, setData } = useData<Vehicle[]>('/vehicles', demoVehicles);
+  const rows = Array.isArray(data) ? data : demoVehicles;
 
-  const isManager = hasRole(['fleet_manager']);
+  const [q, setQ] = useState('');
+  const [type, setType] = useState('');
+  const [status, setStatus] = useState('');
+  const [form, setForm] = useState<Vehicle | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
-  // Modal / Form state
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [regNum, setRegNum] = useState('');
-  const [model, setModel] = useState('');
-  const [type, setType] = useState('Van');
-  const [maxLoad, setMaxLoad] = useState(2500);
-  const [odometer, setOdometer] = useState(0);
-  const [acqCost, setAcqCost] = useState(0);
-  const [status, setStatus] = useState('Available');
-  const [region, setRegion] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
+  const filtered = filterBy(rows, q, ['registration_number', 'name_model'])
+    .filter((v) => !type || v.type === type)
+    .filter((v) => !status || v.status === status);
+  const { sorted, toggle, arrow } = useSort<Vehicle>(filtered);
 
-  const fetchVehicles = async () => {
-    setLoading(true);
-    try {
-      const res = await client.get('/vehicles');
-      setVehicles(res.data);
-    } catch (err) {
-      setError('Failed to load vehicles registry.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchVehicles();
-  }, []);
-
-  const openCreateModal = () => {
-    setEditingId(null);
-    setRegNum('');
-    setModel('');
-    setType('Van');
-    setMaxLoad(2500);
-    setOdometer(0);
-    setAcqCost(0);
-    setStatus('Available');
-    setRegion('');
-    setFormError(null);
-    setShowModal(true);
-  };
-
-  const openEditModal = (v: Vehicle) => {
-    setEditingId(v.id);
-    setRegNum(v.registration_number);
-    setModel(v.name_model);
-    setType(v.type);
-    setMaxLoad(v.max_load_capacity_kg);
-    setOdometer(v.odometer_km);
-    setAcqCost(v.acquisition_cost);
-    setStatus(v.status);
-    setRegion(v.region || '');
-    setFormError(null);
-    setShowModal(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-
-    const payload = {
-      registration_number: regNum,
-      name_model: model,
-      type,
-      max_load_capacity_kg: maxLoad,
-      odometer_km: odometer,
-      acquisition_cost: acqCost,
-      status,
-      region: region || null,
-    };
-
+    if (!form) return;
+    setErr(null);
+    // client-side uniqueness guard (server also enforces)
+    const dupe = rows.some((v) => v.registration_number.toLowerCase() === form.registration_number.toLowerCase() && v.id !== form.id);
+    if (dupe) { setErr(`Registration number "${form.registration_number}" already exists.`); return; }
     try {
-      if (editingId) {
-        await client.put(`/vehicles/${editingId}`, payload);
-      } else {
-        await client.post('/vehicles', payload);
-      }
-      setShowModal(false);
-      fetchVehicles();
-    } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.detail) {
-        setFormError(err.response.data.detail);
-      } else {
-        setFormError('Submission failed. Please check inputs.');
-      }
+      if (form.id) await client.put(`/vehicles/${form.id}`, form);
+      else await client.post('/vehicles', form);
+      setForm(null); reload();
+    } catch (e2: unknown) {
+      const r = e2 as { response?: { data?: { detail?: string } } };
+      if (r.response) { setErr(r.response.data?.detail || 'Save failed.'); return; }
+      // offline demo: mutate locally
+      setData(form.id ? rows.map((v) => (v.id === form.id ? form : v)) : [...rows, { ...form, id: `v${Date.now()}` }]);
+      setForm(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to remove this vehicle?')) return;
-    try {
-      await client.delete(`/vehicles/${id}`);
-      fetchVehicles();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to delete vehicle.');
-    }
+  const remove = async (v: Vehicle) => {
+    if (!confirm(`Remove ${v.registration_number}?`)) return;
+    try { await client.delete(`/vehicles/${v.id}`); reload(); }
+    catch { setData(rows.filter((x) => x.id !== v.id)); }
   };
 
   return (
-    <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
-        <h2>Vehicle Registry</h2>
-        {isManager && (
-          <button onClick={openCreateModal} className="btn btn-primary">
-            + Register Vehicle
-          </button>
-        )}
+    <>
+      <PageHead title="Vehicle Registry" sub={`${rows.length} vehicles in fleet`}>
+        <button className="btn btn-ghost" onClick={() => exportCsv('vehicles.csv', filtered as unknown as Record<string, unknown>[])}><IconDownload size={15} />CSV</button>
+        {editable && <button className="btn btn-primary" onClick={() => { setErr(null); setForm(blank()); }}><IconPlus size={15} />Add Vehicle</button>}
+      </PageHead>
+
+      {!editable && <div className="view-note"><IconAlert size={15} />You have view-only access to Fleet — contact a Fleet Manager to modify.</div>}
+
+      <div className="filters">
+        <div className="filter-group"><label>Search Reg. No.</label><input className="input" placeholder="e.g. VAN-05" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <div className="filter-group"><label>Type</label><select className="select" value={type} onChange={(e) => setType(e.target.value)}><option value="">All</option><option>Van</option><option>Truck</option><option>Mini</option></select></div>
+        <div className="filter-group"><label>Status</label><select className="select" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All</option><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option></select></div>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      {loading ? (
-        <p>Loading registry...</p>
-      ) : (
-        <div className="card">
+      <div className="card">
+        <div className="table-wrap">
           <table className="table">
-            <thead>
-              <tr>
-                <th>Registration</th>
-                <th>Model</th>
-                <th>Type</th>
-                <th>Max Payload</th>
-                <th>Odometer</th>
-                <th>Region</th>
-                <th>Status</th>
-                {isManager && <th>Actions</th>}
-              </tr>
-            </thead>
+            <thead><tr>
+              <Th label="Reg. No." arrow={arrow('registration_number')} onClick={() => toggle('registration_number')} />
+              <Th label="Name / Model" arrow={arrow('name_model')} onClick={() => toggle('name_model')} />
+              <Th label="Type" arrow={arrow('type')} onClick={() => toggle('type')} />
+              <Th label="Capacity" arrow={arrow('max_load_capacity_kg')} onClick={() => toggle('max_load_capacity_kg')} />
+              <Th label="Odometer" arrow={arrow('odometer_km')} onClick={() => toggle('odometer_km')} />
+              <Th label="Acq. Cost" arrow={arrow('acquisition_cost')} onClick={() => toggle('acquisition_cost')} />
+              <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
+              {editable && <th></th>}
+            </tr></thead>
             <tbody>
-              {vehicles.map((v) => (
+              {sorted.map((v) => (
                 <tr key={v.id}>
-                  <td style={{ fontWeight: 'bold' }}>{v.registration_number}</td>
+                  <td className="mono td-strong">{v.registration_number}</td>
                   <td>{v.name_model}</td>
                   <td>{v.type}</td>
-                  <td>{v.max_load_capacity_kg.toLocaleString()} kg</td>
-                  <td>{v.odometer_km.toLocaleString()} km</td>
-                  <td>{v.region || '—'}</td>
-                  <td>
-                    <span className={`status-badge status-${v.status.toLowerCase().replace(' ', '-')}`}>
-                      {v.status}
-                    </span>
-                  </td>
-                  {isManager && (
-                    <td>
-                      <button onClick={() => openEditModal(v)} className="btn btn-secondary btn-sm" style={{ marginRight: '5px' }}>
-                        Edit
-                      </button>
-                      <button onClick={() => handleDelete(v.id)} className="btn btn-danger btn-sm">
-                        Delete
-                      </button>
-                    </td>
-                  )}
+                  <td>{fmtNum(v.max_load_capacity_kg)} kg</td>
+                  <td>{fmtNum(v.odometer_km)} km</td>
+                  <td>₹{fmtNum(v.acquisition_cost)}</td>
+                  <td><Badge status={v.status} /></td>
+                  {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={() => { setErr(null); setForm(v); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={() => remove(v)}><IconTrash size={15} /></button></div></td>}
                 </tr>
               ))}
-              {vehicles.length === 0 && (
-                <tr>
-                  <td colSpan={isManager ? 8 : 7} style={{ textAlign: 'center' }} className="text-muted">
-                    No vehicles registered.
-                  </td>
-                </tr>
-              )}
+              {!loading && filtered.length === 0 && <tr><td colSpan={editable ? 8 : 7} className="empty-row">No vehicles match your filters.</td></tr>}
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="rule-note"><IconAlert size={15} />Rule: Registration No. must be unique · Retired / In Shop vehicles are hidden from the Trip Dispatcher.</div>
+
+      {form && (
+        <Modal title={form.id ? 'Edit Vehicle' : 'Register New Vehicle'} onClose={() => setForm(null)}
+          footer={<><button className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button><button className="btn btn-primary" form="veh-form">Save Vehicle</button></>}>
+          <form id="veh-form" onSubmit={save}>
+            {err && <div className="alert alert-danger">{err}</div>}
+            <div className="field"><label>Registration Number (unique)</label><input className="input" required value={form.registration_number} onChange={(e) => setForm({ ...form, registration_number: e.target.value })} placeholder="VAN-05" /></div>
+            <div className="field"><label>Name / Model</label><input className="input" required value={form.name_model} onChange={(e) => setForm({ ...form, name_model: e.target.value })} placeholder="Force Traveller" /></div>
+            <div className="field-row">
+              <div className="field"><label>Type</label><select className="select" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}><option>Van</option><option>Truck</option><option>Mini</option></select></div>
+              <div className="field"><label>Max Load (kg)</label><input className="input" type="number" min={1} required value={form.max_load_capacity_kg} onChange={(e) => setForm({ ...form, max_load_capacity_kg: +e.target.value })} /></div>
+            </div>
+            <div className="field-row">
+              <div className="field"><label>Odometer (km)</label><input className="input" type="number" min={0} value={form.odometer_km} onChange={(e) => setForm({ ...form, odometer_km: +e.target.value })} /></div>
+              <div className="field"><label>Acquisition Cost (₹)</label><input className="input" type="number" min={0} value={form.acquisition_cost} onChange={(e) => setForm({ ...form, acquisition_cost: +e.target.value })} /></div>
+            </div>
+            <div className="field-row">
+              <div className="field"><label>Status</label><select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option></select></div>
+              <div className="field"><label>Region</label><input className="input" value={form.region || ''} onChange={(e) => setForm({ ...form, region: e.target.value })} placeholder="North" /></div>
+            </div>
+
+            <div className="field">
+              <label>Documents (RC / Insurance / Permit)</label>
+              <div className="flex gap-8" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
+                {(form.documents || []).map((d) => (
+                  <span className="badge b-blue" key={d.id}><IconFile size={11} />{d.label}: {d.filename}</span>
+                ))}
+                {(!form.documents || form.documents.length === 0) && <span className="text-faint" style={{ fontSize: 12 }}>No documents uploaded yet.</span>}
+              </div>
+              <div className="field-row">
+                {(['RC', 'Insurance', 'Permit'] as const).map((label) => (
+                  <label key={label} className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+                    <IconUpload size={13} />{label}
+                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => {
+                      const file = e.target.files?.[0]; if (!file || !form) return;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const doc = { id: `doc${Date.now()}`, label, filename: file.name, dataUrl: String(reader.result), uploaded_at: new Date().toISOString() };
+                        setForm({ ...form, documents: [...(form.documents || []).filter((d) => d.label !== label), doc] });
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = '';
+                    }} />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </form>
+        </Modal>
       )}
-
-      {/* Modal Form */}
-      {showModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>{editingId ? 'Edit Vehicle Details' : 'Register New Vehicle'}</h3>
-            {formError && <div className="alert alert-danger">{formError}</div>}
-            
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Registration Number (Unique)</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={regNum}
-                  onChange={(e) => setRegNum(e.target.value)}
-                  required
-                  placeholder="e.g. VAN-05"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Make & Model</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  required
-                  placeholder="e.g. Ford Transit 2024"
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Type</label>
-                  <select className="form-control" value={type} onChange={(e) => setType(e.target.value)}>
-                    <option value="Van">Van</option>
-                    <option value="Truck">Truck</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Max Payload Capacity (kg)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={maxLoad}
-                    onChange={(e) => setMaxLoad(Number(e.target.value))}
-                    required
-                    min={1}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Odometer (km)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={odometer}
-                    onChange={(e) => setOdometer(Number(e.target.value))}
-                    required
-                    min={0}
-                  />
-                </div>
-
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Acquisition Cost ($)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={acqCost}
-                    onChange={(e) => setAcqCost(Number(e.target.value))}
-                    required
-                    min={0}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Status</label>
-                  <select className="form-control" value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="Available">Available</option>
-                    <option value="On Trip">On Trip</option>
-                    <option value="In Shop">In Shop</option>
-                    <option value="Retired">Retired</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Region</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                    placeholder="e.g. North"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 export default VehiclesPage;

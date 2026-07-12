@@ -1,80 +1,126 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth, type UserRole } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { useData } from '../lib/useData';
+import { buildNotifications, type Notice } from '../lib/notifications';
+import { demoVehicles, demoDrivers, demoTrips, demoMaintenance } from '../lib/demo';
+import type { Vehicle, Driver, Trip, Maintenance } from '../lib/types';
+import { roleLabel, type Section } from '../lib/roles';
+import {
+  IconDashboard, IconTruck, IconUsers, IconRoute, IconWrench, IconFuel,
+  IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconLogout, IconMenu, IconClose,
+} from './Icons';
+
+interface NavItem { path: string; label: string; icon: React.FC<{ size?: number }>; section?: Section; }
+
+const NAV: NavItem[] = [
+  { path: '/', label: 'Dashboard', icon: IconDashboard },
+  { path: '/vehicles', label: 'Fleet', icon: IconTruck, section: 'fleet' },
+  { path: '/drivers', label: 'Drivers', icon: IconUsers, section: 'drivers' },
+  { path: '/trips', label: 'Trips', icon: IconRoute, section: 'trips' },
+  { path: '/maintenance', label: 'Maintenance', icon: IconWrench, section: 'fleet' },
+  { path: '/fuel-expense', label: 'Fuel & Expenses', icon: IconFuel, section: 'fuel' },
+  { path: '/reports', label: 'Analytics', icon: IconChart, section: 'analytics' },
+  { path: '/settings', label: 'Settings', icon: IconSettings },
+];
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, logout, hasRole } = useAuth();
+  const { user, logout } = useAuth();
+  const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { data: vehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
+  const { data: drivers } = useData<Driver[]>('/drivers', demoDrivers);
+  const { data: trips } = useData<Trip[]>('/trips', demoTrips);
+  const { data: maint } = useData<Maintenance[]>('/maintenance', demoMaintenance);
+  const notices: Notice[] = buildNotifications(
+    Array.isArray(vehicles) ? vehicles : demoVehicles,
+    Array.isArray(drivers) ? drivers : demoDrivers,
+    Array.isArray(trips) ? trips : demoTrips,
+    Array.isArray(maint) ? maint : demoMaintenance,
+  );
 
-  const navItems = [
-    { path: '/', label: 'Dashboard', roles: ['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'] },
-    { path: '/vehicles', label: 'Vehicles', roles: ['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'] },
-    { path: '/drivers', label: 'Drivers', roles: ['fleet_manager', 'safety_officer'] },
-    { path: '/trips', label: 'Trips', roles: ['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'] },
-    { path: '/maintenance', label: 'Maintenance', roles: ['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'] },
-    { path: '/fuel-expense', label: 'Fuel & Expenses', roles: ['fleet_manager', 'driver', 'financial_analyst'] },
-    { path: '/reports', label: 'Reports', roles: ['fleet_manager', 'safety_officer', 'financial_analyst'] },
-  ];
+  const visible = NAV;
+  const current = NAV.find((n) => n.path === location.pathname);
+  const initials = (user?.name || 'U').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
-  const formatRole = (role: string) => {
-    return role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-  };
+  const closeMobile = () => setMobileOpen(false);
 
   return (
-    <div className="app-container">
-      {/* Sidebar */}
-      <aside className="sidebar">
+    <div className="app-shell">
+      {mobileOpen && <div className="sidebar-backdrop open" onClick={closeMobile} />}
+      <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
-          <h2>TransitOps</h2>
+          <div className="brand-mark">T</div>
+          <div className="brand-text">
+            <span className="name">TransitOps</span>
+            <span className="tag">Smart Transport Ops</span>
+          </div>
         </div>
         <nav className="sidebar-nav">
-          {navItems.map((item) => {
-            if (hasRole(item.roles as UserRole[])) {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`nav-link ${isActive ? 'active' : ''}`}
-                >
-                  {item.label}
-                </Link>
-              );
-            }
-            return null;
+          <div className="nav-section-label">Operations</div>
+          {visible.map((n) => {
+            const Icon = n.icon;
+            const active = location.pathname === n.path;
+            return (
+              <Link key={n.path} to={n.path} className={`nav-link ${active ? 'active' : ''}`} onClick={closeMobile}>
+                <Icon size={18} />{n.label}
+              </Link>
+            );
           })}
         </nav>
+        <div className="sidebar-foot">TRANSITOPS © 2026 · RBAC v1.0</div>
       </aside>
 
-      {/* Main content wrapper */}
-      <div className="main-content-wrapper">
-        {/* Top Navbar */}
-        <header className="navbar">
-          <div className="navbar-left">
-            <h3>{navItems.find(item => item.path === location.pathname)?.label || 'Portal'}</h3>
+      <div className="main">
+        <header className="topbar">
+          <button className="icon-btn hamburger" onClick={() => setMobileOpen((v) => !v)} title="Menu">
+            {mobileOpen ? <IconClose size={17} /> : <IconMenu size={17} />}
+          </button>
+          <div className="topbar-title">{current?.label || 'TransitOps'}</div>
+          <div className="search-box">
+            <IconSearch size={15} />
+            <input placeholder="Search…" />
           </div>
-          <div className="navbar-right">
-            {user && (
-              <div className="user-profile">
-                <span className="user-name">{user.name}</span>
-                <span className="role-badge">{formatRole(user.role)}</span>
-                <button onClick={handleLogout} className="btn btn-secondary btn-sm">
-                  Logout
-                </button>
+          <div className="topbar-spacer" />
+          <div className="notif-wrap">
+            <button className="icon-btn" title="Notifications" onClick={() => setNotifOpen((v) => !v)}>
+              <IconBell size={17} />{notices.length > 0 && <span className="dot" />}
+            </button>
+            {notifOpen && (
+              <div className="notif-panel" onMouseLeave={() => setNotifOpen(false)}>
+                <div className="notif-head">Notifications ({notices.length})</div>
+                {notices.length === 0 && <div className="notif-empty">All clear — no alerts.</div>}
+                {notices.map((n) => (
+                  <div className="notif-item" key={n.id}>
+                    <span className="notif-dot" style={{ background: `var(--${n.severity})` }} />
+                    <div>
+                      <div className="notif-title">{n.title}</div>
+                      <div className="notif-detail">{n.detail}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
+          <button className="icon-btn" onClick={toggle} title="Toggle theme">
+            {theme === 'dark' ? <IconSun size={17} /> : <IconMoon size={17} />}
+          </button>
+          <div className="user-chip" title={roleLabel(user?.role)}>
+            <span className="uname">{user?.name}</span>
+            <span className="avatar">{initials}</span>
+          </div>
+          <button className="icon-btn" onClick={() => { logout(); navigate('/login'); }} title="Logout">
+            <IconLogout size={17} />
+          </button>
         </header>
 
-        {/* Page Content */}
         <main className="content">
-          {children}
+          <div className="content-inner">{children}</div>
         </main>
       </div>
     </div>

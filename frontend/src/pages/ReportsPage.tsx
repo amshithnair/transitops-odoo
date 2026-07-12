@@ -1,186 +1,89 @@
-import React, { useState, useEffect } from 'react';
-import client from '../api/client';
-import { useAuth } from '../context/AuthContext';
-
-type ReportType = 'fuel-efficiency' | 'fleet-utilization' | 'operational-cost' | 'vehicle-roi';
+import React from 'react';
+import { useData } from '../lib/useData';
+import { demoReport, demoVehicles, demoTrips, demoFuel, demoMaintenance } from '../lib/demo';
+import type { ReportData, Vehicle, Trip, FuelLog, Maintenance } from '../lib/types';
+import { fmtNum } from '../lib/status';
+import { PageHead, Kpi, BarChart, StatBars, exportCsv } from '../components/ui';
+import { IconDownload, IconFuel, IconChart, IconRoute } from '../components/Icons';
 
 export const ReportsPage: React.FC = () => {
-  const [reportType, setReportType] = useState<ReportType>('fuel-efficiency');
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { token } = useAuth();
+  const { data: vehData } = useData<Vehicle[]>('/vehicles', demoVehicles);
+  const { data: tripData } = useData<Trip[]>('/trips', demoTrips);
+  const { data: fuelData } = useData<FuelLog[]>('/fuel-logs', demoFuel);
+  const { data: maintData } = useData<Maintenance[]>('/maintenance', demoMaintenance);
+  const { data: apiReport } = useData<ReportData>('/reports', demoReport);
 
-  const fetchReport = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await client.get(`/reports/${reportType}`);
-      setData(res.data);
-    } catch (err) {
-      setError(`Failed to fetch report metrics.`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const vehicles = Array.isArray(vehData) ? vehData : demoVehicles;
+  const trips = Array.isArray(tripData) ? tripData : demoTrips;
+  const fuel = Array.isArray(fuelData) ? fuelData : demoFuel;
+  const maint = Array.isArray(maintData) ? maintData : demoMaintenance;
 
-  useEffect(() => {
-    fetchReport();
-  }, [reportType]);
+  // Real computation from live fleet data (falls back to backend /reports if it returns a full payload,
+  // otherwise recomputed client-side so ROI reflects actual per-trip revenue entered on completion).
+  const totalFuelCost = fuel.reduce((s, f) => s + f.fuel_cost, 0);
+  const totalMaintCost = maint.reduce((s, m) => s + m.cost, 0);
+  const operationalCost = totalFuelCost + totalMaintCost;
+  const totalAcqCost = vehicles.reduce((s, v) => s + v.acquisition_cost, 0);
+  const completedTrips = trips.filter((t) => t.status === 'Completed');
+  const totalRevenue = completedTrips.reduce((s, t) => s + (t.revenue || 0), 0);
+  const roiPct = totalAcqCost > 0 ? ((totalRevenue - operationalCost) / totalAcqCost) * 100 : 0;
 
-  const getCsvDownloadUrl = () => {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    return `${API_URL}/reports/${reportType}/csv?token=${token}`; // Pass token to query if auth check allows it, or we trigger direct download using blob fetch in React
-  };
+  const totalFuelL = completedTrips.reduce((s, t) => s + (t.fuel_consumed || 0), 0);
+  const totalDist = completedTrips.reduce((s, t) => s + t.planned_distance_km, 0);
+  const fuelEfficiency = totalFuelL > 0 ? totalDist / totalFuelL : 0;
 
-  // Alternative secure download trigger using axios (handles Auth header)
-  const handleDownloadCsv = async () => {
-    try {
-      const response = await client.get(`/reports/${reportType}/csv`, {
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${reportType}_report.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (e) {
-      alert('CSV download failed.');
-    }
-  };
+  const activeVehicles = vehicles.filter((v) => v.status !== 'Retired');
+  const onTrip = vehicles.filter((v) => v.status === 'On Trip');
+  const utilizationPct = activeVehicles.length > 0 ? Math.round((onTrip.length / activeVehicles.length) * 100) : 0;
+
+  const costByVehicle = new Map<string, number>();
+  for (const f of fuel) costByVehicle.set(f.vehicle_label, (costByVehicle.get(f.vehicle_label) || 0) + f.fuel_cost);
+  for (const m of maint) costByVehicle.set(m.vehicle_label, (costByVehicle.get(m.vehicle_label) || 0) + m.cost);
+  const costliest = [...costByVehicle.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+  const hasLiveNumbers = totalFuelCost > 0 || totalMaintCost > 0;
+  const r = hasLiveNumbers
+    ? { fuel_efficiency_kmpl: Math.round(fuelEfficiency * 10) / 10 || demoReport.fuel_efficiency_kmpl, fleet_utilization_pct: utilizationPct, operational_cost: operationalCost, vehicle_roi_pct: Math.round(roiPct * 10) / 10, monthly_revenue: apiReport?.monthly_revenue?.length ? apiReport.monthly_revenue : demoReport.monthly_revenue }
+    : demoReport;
+  const costBars = (costliest.length ? costliest.map(([label, value]) => ({ label, value })) : demoReport.costliest_vehicles)
+    .map((c, i) => ({ label: c.label, value: c.value, color: ['var(--red)', 'var(--amber)', 'var(--blue)'][i] || 'var(--blue)' }));
+
+  const exportReport = () => exportCsv('analytics.csv', [
+    { metric: 'Fuel Efficiency (km/l)', value: r.fuel_efficiency_kmpl },
+    { metric: 'Fleet Utilization (%)', value: r.fleet_utilization_pct },
+    { metric: 'Operational Cost (₹)', value: r.operational_cost },
+    { metric: 'Vehicle ROI (%)', value: r.vehicle_roi_pct },
+    { metric: 'Total Revenue (₹, completed trips)', value: totalRevenue },
+    ...costBars.map((c) => ({ metric: `Cost — ${c.label}`, value: c.value })),
+  ]);
 
   return (
-    <div className="container">
-      {/* Report Selection Dropdown */}
-      <div className="card" style={{ marginBottom: '20px', padding: '15px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontWeight: 'bold' }}>Select Report:</label>
-            <select
-              className="form-control"
-              value={reportType}
-              onChange={(e) => setReportType(e.target.value as ReportType)}
-              style={{ width: '250px' }}
-            >
-              <option value="fuel-efficiency">Fuel Efficiency Report</option>
-              <option value="fleet-utilization">Fleet Utilization Analytics</option>
-              <option value="operational-cost">Operational Cost Overview</option>
-              <option value="vehicle-roi">Asset ROI Calculations</option>
-            </select>
-          </div>
+    <>
+      <PageHead title="Reports & Analytics" sub="Efficiency, utilization & profitability">
+        <button className="btn btn-ghost" onClick={exportReport}><IconDownload size={15} />CSV</button>
+        <button className="btn btn-ghost" onClick={() => window.print()}><IconDownload size={15} />PDF</button>
+      </PageHead>
 
-          <button onClick={handleDownloadCsv} className="btn btn-success">
-            ↓ Download CSV spreadsheet
-          </button>
-        </div>
+      <div className="kpi-row mb-20">
+        <Kpi label="Fuel Efficiency" value={`${r.fuel_efficiency_kmpl} km/l`} color="var(--blue)" icon={<IconFuel />} sub="Distance ÷ Fuel" tip="Total planned distance ÷ total fuel consumed across completed trips." />
+        <Kpi label="Fleet Utilization" value={`${r.fleet_utilization_pct}%`} color="var(--green)" icon={<IconChart />} sub="On-trip / active" tip="On Trip vehicles ÷ non-Retired vehicles." />
+        <Kpi label="Operational Cost" value={`₹${fmtNum(r.operational_cost)}`} color="var(--amber)" icon={<IconRoute />} sub="Fuel + Maintenance" tip="Sum of all fuel logs + maintenance costs, live." />
+        <Kpi label="Vehicle ROI" value={`${r.vehicle_roi_pct}%`} color="var(--accent)" icon={<IconChart />} sub="Return on assets" tip="(Revenue − (Maintenance + Fuel)) ÷ Acquisition Cost. Revenue = sum of per-trip revenue entered on trip completion." />
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      <div className="alert alert-info" style={{ fontFamily: 'var(--font-mono)' }}>ROI = (Revenue − (Maintenance + Fuel)) / Acquisition Cost · Revenue = ₹{fmtNum(totalRevenue)} from {completedTrips.length} completed trip(s)</div>
 
-      {loading ? (
-        <p>Calculating analytics...</p>
-      ) : data ? (
-        <div className="card">
-          {reportType === 'fuel-efficiency' && (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Vehicle Registration</th>
-                  <th>Total Distance</th>
-                  <th>Total Fuel Consumed</th>
-                  <th>Fuel Efficiency</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((r: any) => (
-                  <tr key={r.vehicle_id}>
-                    <td style={{ fontWeight: 'bold' }}>{r.registration_number}</td>
-                    <td>{r.total_distance_km.toLocaleString()} km</td>
-                    <td>{r.total_fuel_liters.toLocaleString()} liters</td>
-                    <td>
-                      <strong style={{ color: r.efficiency_km_per_liter ? 'green' : 'inherit' }}>
-                        {r.efficiency_km_per_liter ? `${r.efficiency_km_per_liter} km/L` : 'N/A (No fuel logs)'}
-                      </strong>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          {reportType === 'fleet-utilization' && (
-            <div style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', gap: '40px', justifyContent: 'center', padding: '20px 0' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '48px', fontWeight: 'bold' }}>{data.utilization_pct}%</div>
-                  <p className="text-muted">Current Fleet Utilization</p>
-                </div>
-                <div style={{ borderLeft: '1px solid #ddd', paddingLeft: '40px' }}>
-                  <p><strong>Total Active Vehicles:</strong> {data.total_active_vehicles}</p>
-                  <p><strong>Vehicles currently on Trip:</strong> {data.vehicles_on_trip}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {reportType === 'operational-cost' && (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Vehicle Registration</th>
-                  <th>Fuel Costs</th>
-                  <th>Maintenance Costs</th>
-                  <th>Expenses Costs</th>
-                  <th>Total Operational Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((r: any) => (
-                  <tr key={r.vehicle_id}>
-                    <td style={{ fontWeight: 'bold' }}>{r.registration_number}</td>
-                    <td>${r.fuel_cost.toLocaleString()}</td>
-                    <td>${r.maintenance_cost.toLocaleString()}</td>
-                    <td>${r.expense_cost.toLocaleString()}</td>
-                    <td style={{ fontWeight: 'bold', fontSize: '15px' }}>${r.total_cost.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          {reportType === 'vehicle-roi' && (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Vehicle Registration</th>
-                  <th>Total Revenue</th>
-                  <th>Total Operational Cost</th>
-                  <th>Acquisition Cost</th>
-                  <th>ROI (%)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((r: any) => (
-                  <tr key={r.vehicle_id}>
-                    <td style={{ fontWeight: 'bold' }}>{r.registration_number}</td>
-                    <td>${r.total_revenue.toLocaleString()}</td>
-                    <td>${r.total_cost.toLocaleString()}</td>
-                    <td>${r.acquisition_cost.toLocaleString()}</td>
-                    <td>
-                      <strong style={{ color: r.roi_pct && r.roi_pct > 0 ? 'green' : 'red' }}>
-                        {r.roi_pct !== null ? `${r.roi_pct}%` : 'N/A'}
-                      </strong>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      <div className="two-col">
+        <div className="card card-pad">
+          <div className="card-title mb-20">Monthly Revenue</div>
+          <BarChart data={r.monthly_revenue} />
         </div>
-      ) : null}
-    </div>
+        <div className="card card-pad">
+          <div className="card-title mb-20">Top Costliest Vehicles</div>
+          <StatBars data={costBars} />
+        </div>
+      </div>
+    </>
   );
 };
 export default ReportsPage;

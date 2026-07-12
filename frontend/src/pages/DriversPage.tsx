@@ -1,322 +1,149 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useData, filterBy } from '../lib/useData';
+import { useSort } from '../lib/useSort';
+import { demoDrivers } from '../lib/demo';
+import type { Driver } from '../lib/types';
+import { canEdit } from '../lib/roles';
+import { safetyColor, expiryInfo, fmtDate } from '../lib/status';
+import { PageHead, Badge, ColorBadge, Modal, exportCsv, Th } from '../components/ui';
+import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert } from '../components/Icons';
 
-interface Driver {
-  id: string;
-  name: string;
-  license_number: string;
-  license_category: string;
-  license_expiry_date: string;
-  contact_number: string | null;
-  safety_score: number;
-  status: string;
-  created_at: string;
-}
+const DRIVER_STATUSES = ['Available', 'On Trip', 'Off Duty', 'Suspended'];
+const blank = (): Driver => ({ id: '', name: '', license_number: '', license_category: 'LMV', license_expiry: '', contact_number: '', safety_score: 80, trip_completion_pct: 100, status: 'Available' });
 
 export const DriversPage: React.FC = () => {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { hasRole, user } = useAuth();
+  const { user } = useAuth();
+  const editable = canEdit(user?.role, 'drivers');
+  const { data, reload, setData } = useData<Driver[]>('/drivers', demoDrivers);
+  const rows = Array.isArray(data) ? data : demoDrivers;
 
-  const isManager = hasRole(['fleet_manager']);
-  const isSafety = hasRole(['safety_officer']);
-  const canWrite = isManager || isSafety;
+  const [q, setQ] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
+  const [form, setForm] = useState<Driver | null>(null);
+  const [override, setOverride] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  // Modal / Form state
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [licenseNum, setLicenseNum] = useState('');
-  const [licenseCat, setLicenseCat] = useState('');
-  const [licenseExpiry, setLicenseExpiry] = useState('');
-  const [contactNum, setContactNum] = useState('');
-  const [safetyScore, setSafetyScore] = useState(100);
-  const [status, setStatus] = useState('Available');
-  const [formError, setFormError] = useState<string | null>(null);
+  const filtered = filterBy(rows, q, ['name', 'license_number', 'license_category']);
+  const { sorted, toggle, arrow } = useSort<Driver>(filtered);
 
-  const fetchDrivers = async () => {
-    setLoading(true);
-    try {
-      const res = await client.get('/drivers');
-      setDrivers(res.data);
-    } catch (err) {
-      setError('Failed to load drivers database.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDrivers();
-  }, []);
-
-  const openCreateModal = () => {
-    setEditingId(null);
-    setName('');
-    setLicenseNum('');
-    setLicenseCat('');
-    setLicenseExpiry('');
-    setContactNum('');
-    setSafetyScore(100);
-    setStatus('Available');
-    setFormError(null);
-    setShowModal(true);
-  };
-
-  const openEditModal = (d: Driver) => {
-    setEditingId(d.id);
-    setName(d.name);
-    setLicenseNum(d.license_number);
-    setLicenseCat(d.license_category);
-    setLicenseExpiry(d.license_expiry_date);
-    setContactNum(d.contact_number || '');
-    setSafetyScore(d.safety_score);
-    setStatus(d.status);
-    setFormError(null);
-    setShowModal(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-
-    // If safety officer, restrict payload to compliance fields only
-    const payload: any = {};
-    if (isSafety && editingId) {
-      payload.license_number = licenseNum;
-      payload.license_category = licenseCat;
-      payload.license_expiry_date = licenseExpiry;
-      payload.safety_score = safetyScore;
-      payload.status = status;
-    } else {
-      payload.name = name;
-      payload.license_number = licenseNum;
-      payload.license_category = licenseCat;
-      payload.license_expiry_date = licenseExpiry;
-      payload.contact_number = contactNum || null;
-      payload.safety_score = safetyScore;
-      payload.status = status;
-    }
-
+    if (!form) return;
+    setErr(null);
+    const exp = expiryInfo(form.license_expiry);
+    if (exp.expired && !override) { setErr('License expiry is in the past. Tick the override to save anyway.'); return; }
     try {
-      if (editingId) {
-        await client.put(`/drivers/${editingId}`, payload);
-      } else {
-        await client.post('/drivers', payload);
-      }
-      setShowModal(false);
-      fetchDrivers();
-    } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.detail) {
-        setFormError(err.response.data.detail);
-      } else {
-        setFormError('Submission failed. Check compliance parameters.');
-      }
+      if (form.id) await client.put(`/drivers/${form.id}`, form);
+      else await client.post('/drivers', form);
+      setForm(null); reload();
+    } catch (e2: unknown) {
+      const r = e2 as { response?: { data?: { detail?: string } } };
+      if (r.response) { setErr(r.response.data?.detail || 'Save failed.'); return; }
+      setData(form.id ? rows.map((d) => (d.id === form.id ? form : d)) : [...rows, { ...form, id: `d${Date.now()}` }]);
+      setForm(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to remove this driver?')) return;
-    try {
-      await client.delete(`/drivers/${id}`);
-      fetchDrivers();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to delete driver.');
-    }
+  const setStatus = async (s: string) => {
+    if (!selected) return;
+    setData(rows.map((d) => (d.id === selected ? { ...d, status: s } : d)));
+    try { await client.patch(`/drivers/${selected}`, { status: s }); } catch { /* offline demo: local only */ }
   };
+
+  const remove = async (d: Driver) => {
+    if (!confirm(`Remove driver ${d.name}?`)) return;
+    try { await client.delete(`/drivers/${d.id}`); reload(); } catch { setData(rows.filter((x) => x.id !== d.id)); }
+  };
+
+  const selDriver = rows.find((d) => d.id === selected);
 
   return (
-    <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
-        <h2>Drivers Database</h2>
-        {isManager && (
-          <button onClick={openCreateModal} className="btn btn-primary">
-            + Add Driver
-          </button>
-        )}
+    <>
+      <PageHead title="Drivers & Safety Profiles" sub={`${rows.length} drivers`}>
+        <button className="btn btn-ghost" onClick={() => exportCsv('drivers.csv', filtered as unknown as Record<string, unknown>[])}><IconDownload size={15} />CSV</button>
+        {editable && <button className="btn btn-primary" onClick={() => { setErr(null); setOverride(false); setForm(blank()); }}><IconPlus size={15} />Add Driver</button>}
+      </PageHead>
+
+      {!editable && <div className="view-note"><IconAlert size={15} />View-only access to Drivers — contact a Safety Officer or Fleet Manager to modify.</div>}
+
+      <div className="filters">
+        <div className="filter-group"><label>Search</label><input className="input" placeholder="Name or license…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      {loading ? (
-        <p>Loading database...</p>
-      ) : (
-        <div className="card">
+      <div className="card">
+        <div className="table-wrap">
           <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>License #</th>
-                <th>Class</th>
-                <th>License Expiry</th>
-                <th>Contact</th>
-                <th>Safety Score</th>
-                <th>Status</th>
-                {canWrite && <th>Actions</th>}
-              </tr>
-            </thead>
+            <thead><tr>
+              <Th label="Driver" arrow={arrow('name')} onClick={() => toggle('name')} />
+              <Th label="License No." arrow={arrow('license_number')} onClick={() => toggle('license_number')} />
+              <Th label="Category" arrow={arrow('license_category')} onClick={() => toggle('license_category')} />
+              <Th label="Expiry" arrow={arrow('license_expiry')} onClick={() => toggle('license_expiry')} />
+              <th>Contact</th>
+              <Th label="Trip Compl." arrow={arrow('trip_completion_pct')} onClick={() => toggle('trip_completion_pct')} />
+              <Th label="Safety" arrow={arrow('safety_score')} onClick={() => toggle('safety_score')} />
+              <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
+              {editable && <th></th>}
+            </tr></thead>
             <tbody>
-              {drivers.map((d) => {
-                const isLicenseExpired = new Date(d.license_expiry_date) < new Date();
+              {sorted.map((d) => {
+                const exp = expiryInfo(d.license_expiry);
                 return (
-                  <tr key={d.id} className={isLicenseExpired ? 'row-highlight-danger' : ''}>
-                    <td style={{ fontWeight: 'bold' }}>{d.name}</td>
-                    <td>{d.license_number}</td>
+                  <tr key={d.id} className={exp.expired ? 'row-danger' : ''} onClick={() => editable && setSelected(d.id)} style={{ cursor: editable ? 'pointer' : 'default', outline: selected === d.id ? '2px solid var(--accent)' : 'none', outlineOffset: -2 }}>
+                    <td className="td-strong">{d.name}</td>
+                    <td className="mono">{d.license_number}</td>
                     <td>{d.license_category}</td>
-                    <td style={{ color: isLicenseExpired ? 'red' : 'inherit', fontWeight: isLicenseExpired ? 'bold' : 'normal' }}>
-                      {d.license_expiry_date} {isLicenseExpired && '(EXPIRED)'}
-                    </td>
-                    <td>{d.contact_number || '—'}</td>
-                    <td>
-                      <strong style={{ color: d.safety_score < 90 ? 'orange' : 'green' }}>
-                        {d.safety_score}/100
-                      </strong>
-                    </td>
-                    <td>
-                      <span className={`status-badge status-${d.status.toLowerCase().replace(' ', '-')}`}>
-                        {d.status}
-                      </span>
-                    </td>
-                    {canWrite && (
-                      <td>
-                        <button onClick={() => openEditModal(d)} className="btn btn-secondary btn-sm" style={{ marginRight: '5px' }}>
-                          Edit
-                        </button>
-                        {isManager && (
-                          <button onClick={() => handleDelete(d.id)} className="btn btn-danger btn-sm">
-                            Delete
-                          </button>
-                        )}
-                      </td>
-                    )}
+                    <td><ColorBadge color={exp.color}>{fmtDate(d.license_expiry)} · {exp.label}</ColorBadge></td>
+                    <td className="text-muted">{d.contact_number}</td>
+                    <td>{d.trip_completion_pct ?? '—'}%</td>
+                    <td><ColorBadge color={safetyColor(d.safety_score)}>{d.safety_score}</ColorBadge></td>
+                    <td><Badge status={d.status} /></td>
+                    {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setErr(null); setOverride(false); setForm(d); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={(e) => { e.stopPropagation(); remove(d); }}><IconTrash size={15} /></button></div></td>}
                   </tr>
                 );
               })}
-              {drivers.length === 0 && (
-                <tr>
-                  <td colSpan={canWrite ? 8 : 7} style={{ textAlign: 'center' }} className="text-muted">
-                    No drivers registered.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
-      )}
+      </div>
 
-      {/* Modal Form */}
-      {showModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>{editingId ? 'Edit Driver Details' : 'Register New Driver'}</h3>
-            {isSafety && <p className="text-muted" style={{ fontSize: '12px' }}>* Safety Officer Mode: You can only edit compliance fields (license, score, status).</p>}
-            {formError && <div className="alert alert-danger">{formError}</div>}
-            
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Full Name</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  disabled={isSafety && !!editingId} // Read-only for safety officer when editing
-                  placeholder="e.g. Alex Johnson"
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>License Number</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={licenseNum}
-                    onChange={(e) => setLicenseNum(e.target.value)}
-                    required
-                    placeholder="e.g. DL-2024-0042"
-                  />
-                </div>
-
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>License Category</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={licenseCat}
-                    onChange={(e) => setLicenseCat(e.target.value)}
-                    required
-                    placeholder="e.g. C+E"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>License Expiry Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={licenseExpiry}
-                    onChange={(e) => setLicenseExpiry(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Contact Number</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={contactNum}
-                    onChange={(e) => setContactNum(e.target.value)}
-                    disabled={isSafety && !!editingId} // Read-only for safety
-                    placeholder="e.g. +1-555-0142"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Safety Score (0 - 100)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={safetyScore}
-                    onChange={(e) => setSafetyScore(Number(e.target.value))}
-                    required
-                    min={0}
-                    max={100}
-                  />
-                </div>
-
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Status</label>
-                  <select className="form-control" value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="Available">Available</option>
-                    <option value="On Trip">On Trip</option>
-                    <option value="Off Duty">Off Duty</option>
-                    <option value="Suspended">Suspended</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save Changes
-                </button>
-              </div>
-            </form>
+      {editable && (
+        <div className="card card-pad mt-16">
+          <div className="klabel" style={{ marginBottom: 10 }}>Toggle Status {selDriver ? `— ${selDriver.name}` : '(select a driver row)'}</div>
+          <div className="flex gap-8" style={{ flexWrap: 'wrap' }}>
+            {DRIVER_STATUSES.map((s) => (
+              <button key={s} className={`pill ${selDriver?.status === s ? 'active' : ''}`} disabled={!selected} onClick={() => setStatus(s)}>{s}</button>
+            ))}
           </div>
         </div>
       )}
-    </div>
+
+      <div className="rule-note"><IconAlert size={15} />Rule: Expired license or Suspended status → driver is blocked from trip assignment.</div>
+
+      {form && (
+        <Modal title={form.id ? 'Edit Driver' : 'Add Driver'} onClose={() => setForm(null)}
+          footer={<><button className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button><button className="btn btn-primary" form="drv-form">Save Driver</button></>}>
+          <form id="drv-form" onSubmit={save}>
+            {err && <div className="alert alert-danger">{err}</div>}
+            <div className="field"><label>Name</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+            <div className="field-row">
+              <div className="field"><label>License Number</label><input className="input" required value={form.license_number} onChange={(e) => setForm({ ...form, license_number: e.target.value })} placeholder="DL-88213" /></div>
+              <div className="field"><label>Category</label><select className="select" value={form.license_category} onChange={(e) => setForm({ ...form, license_category: e.target.value })}><option>LMV</option><option>HMV</option><option>MGV</option></select></div>
+            </div>
+            <div className="field-row">
+              <div className="field"><label>License Expiry</label><input className="input" type="date" required value={form.license_expiry} onChange={(e) => setForm({ ...form, license_expiry: e.target.value })} /></div>
+              <div className="field"><label>Contact</label><input className="input" value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} /></div>
+            </div>
+            <div className="field-row">
+              <div className="field"><label>Safety Score</label><input className="input" type="number" min={0} max={100} value={form.safety_score} onChange={(e) => setForm({ ...form, safety_score: +e.target.value })} /></div>
+              <div className="field"><label>Status</label><select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{DRIVER_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></div>
+            </div>
+            <label className="checkbox"><input type="checkbox" checked={override} onChange={(e) => setOverride(e.target.checked)} />Override — allow save with expired license</label>
+          </form>
+        </Modal>
+      )}
+    </>
   );
 };
 export default DriversPage;
