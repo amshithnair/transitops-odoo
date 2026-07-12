@@ -1,7 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import client from '../api/client';
 
-export type UserRole = 'fleet_manager' | 'driver' | 'safety_officer' | 'financial_analyst';
+export type UserRole = 'superadmin' | 'fleet_manager' | 'driver' | 'safety_officer' | 'financial_analyst';
 
 export interface User {
   id: string;
