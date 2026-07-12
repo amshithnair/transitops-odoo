@@ -29,4 +29,7 @@ export const IconCheck = (p: P) => <S {...p} body={<path d="M20 6 9 17l-5-5" />}
 export const IconLogout = (p: P) => <S {...p} body={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></>} />;
 export const IconClock = (p: P) => <S {...p} body={<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>} />;
 export const IconMap = (p: P) => <S {...p} body={<><path d="M9 3 3 5v16l6-2 6 2 6-2V3l-6 2-6-2z" /><path d="M9 3v16M15 5v16" /></>} />;
-export const IconAI = (p: P) => <S {...p} body={<><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></>} />;
+export const IconMenu = (p: P) => <S {...p} body={<><path d="M3 6h18M3 12h18M3 18h18" /></>} />;
+export const IconFile = (p: P) => <S {...p} body={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></>} />;
+export const IconUpload = (p: P) => <S {...p} body={<><path d="M12 21V9" /><path d="m7 13 5-5 5 5" /><path d="M4 21h16" /></>} />;
+export const IconActivity = (p: P) => <S {...p} body={<path d="M22 12h-4l-3 9L9 3l-3 9H2" />} />;

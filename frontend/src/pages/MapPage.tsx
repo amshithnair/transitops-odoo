@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PageHead, Loader } from '../components/ui';
-import { useData } from '../hooks/useData';
+import { useData } from '../lib/useData';
 import type { MapVehicle } from '../types';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';

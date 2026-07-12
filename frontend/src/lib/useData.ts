@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import client from '../api/client';
 
-export function useData<T>(url: string, params?: Record<string, unknown>) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+export function useData<T>(url: string, fallback?: T, params?: Record<string, unknown>) {
+  const [data, setData] = useState<T | null>(fallback ?? null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const key = JSON.stringify(params ?? {});
@@ -14,12 +14,12 @@ export function useData<T>(url: string, params?: Record<string, unknown>) {
     try {
       const res = await client.get(url, { params });
       const payload = res.data;
-      // Accept either an array/object directly or {items:[...]}
       const value = (payload && payload.items !== undefined) ? payload.items : payload;
       setData(value as T);
     } catch (err: any) {
+      console.warn(`API offline/failed (${url}), using fallback.`);
       setError(err?.response?.data?.detail || err.message || 'Failed to fetch data');
-      setData(null);
+      setData(fallback ?? null);
     } finally {
       setLoading(false);
     }

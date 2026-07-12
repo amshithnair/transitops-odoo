@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../hooks/useData';
-import type { KPIs, Trip } from '../types';
-import { fmtNum } from '../utils/status';
-import { PageHead, Kpi, StatBars, Loader } from '../components/ui';
+import { useData } from '../lib/useData';
+import type { KPIs, Trip } from '../lib/types';
+import { fmtNum } from '../lib/status';
+import { demoKpis } from '../lib/demo';
+import { PageHead, Kpi, StatBars } from '../components/ui';
 import { IconTruck, IconUsers, IconRoute, IconFuel, IconChart, IconWrench, IconClock } from '../components/Icons';
 
 export const DashboardPage: React.FC = () => {
@@ -15,7 +16,7 @@ export const DashboardPage: React.FC = () => {
   if (vehType) params.vehicle_type = vehType;
   if (region) params.region = region;
 
-  const { data: kpis, loading, error } = useData<KPIs>('/dashboard/kpis', params);
+  const { data: kpis, loading, error } = useData<KPIs>('/dashboard/kpis', demoKpis);
   const { data: tripsData } = useData<{ items?: Trip[] } | Trip[]>('/trips');
   const trips: Trip[] = Array.isArray(tripsData) ? tripsData : (tripsData?.items ?? []);
 
@@ -38,7 +39,7 @@ export const DashboardPage: React.FC = () => {
         </div>
       </PageHead>
 
-      {loading ? <Loader /> : error ? (
+      {loading ? <div>Loading...</div> : error ? (
         <div className="alert alert-danger">{error}</div>
       ) : !k ? (
         <div className="text-muted">No dashboard data available.</div>

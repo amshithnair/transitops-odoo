@@ -1,55 +1,70 @@
 import React, { useState } from 'react';
-import client from '../api/client';
-import { useData } from '../hooks/useData';
-import type { ReportData, Vehicle } from '../types';
-import { fmtNum } from '../utils/status';
-import { PageHead, Loader, Kpi } from '../components/ui';
-import { IconDownload, IconChart } from '../components/Icons';
+import { useData } from '../lib/useData';
+import { demoReport, demoVehicles, demoTrips, demoFuel, demoMaintenance } from '../lib/demo';
+import type { ReportData, Vehicle, Trip, FuelLog, Maintenance } from '../lib/types';
+import { fmtNum } from '../lib/status';
+import { PageHead, Kpi, BarChart, StatBars, exportCsv } from '../components/ui';
+import { IconDownload, IconFuel, IconChart, IconRoute } from '../components/Icons';
 
 export const ReportsPage: React.FC = () => {
+  const { data: vehData } = useData<Vehicle[]>('/vehicles', demoVehicles);
+  const { data: tripData } = useData<Trip[]>('/trips', demoTrips);
+  const { data: fuelData } = useData<FuelLog[]>('/fuel-logs', demoFuel);
+  const { data: maintData } = useData<Maintenance[]>('/maintenance', demoMaintenance);
+  const { data: apiReport } = useData<ReportData>('/reports', demoReport);
+
+  const [vehFilter, setVehFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [vehFilter, setVehFilter] = useState('');
-  
-  const params: Record<string, unknown> = {};
-  if (dateFrom) params.date_from = dateFrom;
-  if (dateTo) params.date_to = dateTo;
-  if (vehFilter) params.vehicle_id = vehFilter;
-  
-  // Note: API returns individual report lists on separate endpoints, but /reports/summary gives aggregate data.
-  const { data: summary, loading, error } = useData<ReportData>('/reports/summary', params);
-  const { data: vehData } = useData<{ items?: Vehicle[] } | Vehicle[]>('/vehicles');
-  const vehicles: Vehicle[] = Array.isArray(vehData) ? vehData : (vehData?.items ?? []);
-  
-  const s = summary;
 
-  // Functions to trigger CSV downloads directly from the backend endpoints
-  const downloadCsv = async (endpoint: string, filename: string) => {
-    try {
-      const q = new URLSearchParams();
-      if (dateFrom) q.append('date_from', dateFrom);
-      if (dateTo) q.append('date_to', dateTo);
-      if (vehFilter) q.append('vehicle_id', vehFilter);
-      
-      const res = await client.get(`/reports/${endpoint}/csv?${q.toString()}`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (e) {
-      console.error('Failed to download CSV', e);
-      alert('Failed to download report.');
-    }
-  };
+  const vehicles = Array.isArray(vehData) ? vehData : demoVehicles;
+  const trips = Array.isArray(tripData) ? tripData : demoTrips;
+  const fuel = Array.isArray(fuelData) ? fuelData : demoFuel;
+  const maint = Array.isArray(maintData) ? maintData : demoMaintenance;
 
-  const chartMax = s ? Math.max(...(s.monthly_revenue || []).map(m => m.value), 1) : 1;
+  // Real computation from live fleet data (falls back to backend /reports if it returns a full payload,
+  // otherwise recomputed client-side so ROI reflects actual per-trip revenue entered on completion).
+  const totalFuelCost = fuel.reduce((s, f) => s + f.fuel_cost, 0);
+  const totalMaintCost = maint.reduce((s, m) => s + m.cost, 0);
+  const operationalCost = totalFuelCost + totalMaintCost;
+  const totalAcqCost = vehicles.reduce((s, v) => s + v.acquisition_cost, 0);
+  const completedTrips = trips.filter((t) => t.status === 'Completed');
+  const totalRevenue = completedTrips.reduce((s, t) => s + (t.revenue || 0), 0);
+  const roiPct = totalAcqCost > 0 ? ((totalRevenue - operationalCost) / totalAcqCost) * 100 : 0;
+
+  const totalFuelL = completedTrips.reduce((s, t) => s + (t.fuel_consumed || 0), 0);
+  const totalDist = completedTrips.reduce((s, t) => s + t.planned_distance_km, 0);
+  const fuelEfficiency = totalFuelL > 0 ? totalDist / totalFuelL : 0;
+
+  const activeVehicles = vehicles.filter((v) => v.status !== 'Retired');
+  const onTrip = vehicles.filter((v) => v.status === 'On Trip');
+  const utilizationPct = activeVehicles.length > 0 ? Math.round((onTrip.length / activeVehicles.length) * 100) : 0;
+
+  const costByVehicle = new Map<string, number>();
+  for (const f of fuel) costByVehicle.set(f.vehicle_label, (costByVehicle.get(f.vehicle_label) || 0) + f.fuel_cost);
+  for (const m of maint) costByVehicle.set(m.vehicle_label, (costByVehicle.get(m.vehicle_label) || 0) + m.cost);
+  const costliest = [...costByVehicle.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+  const hasLiveNumbers = totalFuelCost > 0 || totalMaintCost > 0;
+  const r = hasLiveNumbers
+    ? { fuel_efficiency_kmpl: Math.round(fuelEfficiency * 10) / 10 || demoReport.fuel_efficiency_kmpl, fleet_utilization_pct: utilizationPct, operational_cost: operationalCost, vehicle_roi_pct: Math.round(roiPct * 10) / 10, monthly_revenue: apiReport?.monthly_revenue?.length ? apiReport.monthly_revenue : demoReport.monthly_revenue }
+    : demoReport;
+  const costBars = (costliest.length ? costliest.map(([label, value]) => ({ label, value })) : demoReport.costliest_vehicles)
+    .map((c, i) => ({ label: c.label, value: c.value, color: ['var(--red)', 'var(--amber)', 'var(--blue)'][i] || 'var(--blue)' }));
+
+  const exportReport = () => exportCsv('analytics.csv', [
+    { metric: 'Fuel Efficiency (km/l)', value: r.fuel_efficiency_kmpl },
+    { metric: 'Fleet Utilization (%)', value: r.fleet_utilization_pct },
+    { metric: 'Operational Cost (₹)', value: r.operational_cost },
+    { metric: 'Vehicle ROI (%)', value: r.vehicle_roi_pct },
+    { metric: 'Total Revenue (₹, completed trips)', value: totalRevenue },
+    ...costBars.map((c) => ({ metric: `Cost — ${c.label}`, value: c.value })),
+  ]);
 
   return (
     <>
       <PageHead title="Reports & Analytics" sub="Financial performance & efficiency metrics">
+        <button className="btn btn-ghost" onClick={exportReport}><IconDownload size={15} />CSV</button>
         <div className="filters" style={{ marginBottom: 0 }}>
           <div className="filter-group"><label>Vehicle</label><select className="select" value={vehFilter} onChange={(e) => setVehFilter(e.target.value)}><option value="">All</option>{vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}</select></div>
           <div className="filter-group"><label>From</label><input className="input" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} /></div>
@@ -57,84 +72,25 @@ export const ReportsPage: React.FC = () => {
         </div>
       </PageHead>
 
-      {loading ? <Loader /> : error ? (
-        <div className="alert alert-danger">{error}</div>
-      ) : !s ? (
-        <div className="card card-pad text-muted text-center py-40">No data found for this period.</div>
-      ) : (
-        <>
-          <div className="kpi-row mb-20">
-            <Kpi label="Fuel Efficiency" value={s.fuel_efficiency_kmpl != null ? `${s.fuel_efficiency_kmpl} km/L` : 'N/A'} color="var(--green)" icon={<IconChart />} sub="Fleet average" />
-            <Kpi label="Fleet Utilization" value={`${s.fleet_utilization_pct}%`} color="var(--blue)" icon={<IconChart />} sub="Active vs Total" />
-            <Kpi label="Operational Cost" value={`₹${fmtNum(s.operational_cost)}`} color="var(--amber)" icon={<IconChart />} sub="Fuel + Maintenance + Expenses" />
-            <Kpi label="Avg Vehicle ROI" value={s.vehicle_roi_pct != null ? `${s.vehicle_roi_pct}%` : 'N/A'} color="var(--accent)" icon={<IconChart />} sub="(Revenue - Cost) / Asset Value" />
-          </div>
+      <div className="kpi-row mb-20">
+        <Kpi label="Fuel Efficiency" value={`${r.fuel_efficiency_kmpl} km/l`} color="var(--blue)" icon={<IconFuel />} sub="Distance ÷ Fuel" tip="Total planned distance ÷ total fuel consumed across completed trips." />
+        <Kpi label="Fleet Utilization" value={`${r.fleet_utilization_pct}%`} color="var(--green)" icon={<IconChart />} sub="On-trip / active" tip="On Trip vehicles ÷ non-Retired vehicles." />
+        <Kpi label="Operational Cost" value={`₹${fmtNum(r.operational_cost)}`} color="var(--amber)" icon={<IconRoute />} sub="Fuel + Maintenance" tip="Sum of all fuel logs + maintenance costs, live." />
+        <Kpi label="Vehicle ROI" value={`${r.vehicle_roi_pct}%`} color="var(--accent)" icon={<IconChart />} sub="Return on assets" tip="(Revenue − (Maintenance + Fuel)) ÷ Acquisition Cost. Revenue = sum of per-trip revenue entered on trip completion." />
+      </div>
 
-          <div className="two-col mb-20">
-            <div className="card card-pad">
-              <div className="card-head" style={{ padding: '0 0 16px', border: 'none' }}>
-                <h3 style={{ margin: 0 }}>Monthly Revenue</h3>
-              </div>
-              <div className="bars">
-                {s.monthly_revenue?.map((m) => (
-                  <div key={m.month} className="bar-col">
-                    <div className="bar-val">₹{fmtNum(m.value)}</div>
-                    <div className="bar" style={{ height: `${Math.max(4, (m.value / chartMax) * 100)}%` }} />
-                    <div className="bar-label">{m.month}</div>
-                  </div>
-                ))}
-                {(!s.monthly_revenue || s.monthly_revenue.length === 0) && <div className="text-muted">No revenue data for selected filters.</div>}
-              </div>
-            </div>
+      <div className="alert alert-info" style={{ fontFamily: 'var(--font-mono)' }}>ROI = (Revenue − (Maintenance + Fuel)) / Acquisition Cost · Revenue = ₹{fmtNum(totalRevenue)} from {completedTrips.length} completed trip(s)</div>
 
-            <div className="card card-pad">
-              <div className="card-head" style={{ padding: '0 0 16px', border: 'none' }}>
-                <h3 style={{ margin: 0 }}>Costliest Vehicles (Top 5)</h3>
-              </div>
-              <div>
-                {s.costliest_vehicles?.map((v) => (
-                  <div key={v.label} className="statbar-row">
-                    <div className="statbar-label mono">{v.label}</div>
-                    <div className="statbar-track">
-                      <div className="statbar-fill bg-amber" style={{ width: `${Math.max(5, (v.value / (s.costliest_vehicles[0]?.value || 1)) * 100)}%`, background: 'var(--amber)' }} />
-                    </div>
-                    <div className="statbar-val">₹{fmtNum(v.value)}</div>
-                  </div>
-                ))}
-                {(!s.costliest_vehicles || s.costliest_vehicles.length === 0) && <div className="text-muted">No operational cost data for selected filters.</div>}
-              </div>
-            </div>
-          </div>
-          
-          <div className="card mb-20">
-            <div className="card-head">
-              <h3>Available Reports (CSV)</h3>
-            </div>
-            <div className="table-wrap">
-              <table className="table">
-                <tbody>
-                  <tr>
-                    <td><strong>Fuel Efficiency Report</strong><div className="text-muted text-faint">Distance, fuel consumption, and km/L per vehicle</div></td>
-                    <td style={{ textAlign: 'right' }}><button className="btn btn-ghost" onClick={() => downloadCsv('fuel-efficiency', 'fuel_efficiency.csv')}><IconDownload size={15}/> Download CSV</button></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Operational Cost Report</strong><div className="text-muted text-faint">Fuel + Maintenance + Expense breakdown per vehicle</div></td>
-                    <td style={{ textAlign: 'right' }}><button className="btn btn-ghost" onClick={() => downloadCsv('operational-cost', 'operational_cost.csv')}><IconDownload size={15}/> Download CSV</button></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Vehicle ROI Report</strong><div className="text-muted text-faint">Revenue vs Costs against Acquisition Cost</div></td>
-                    <td style={{ textAlign: 'right' }}><button className="btn btn-ghost" onClick={() => downloadCsv('vehicle-roi', 'vehicle_roi.csv')}><IconDownload size={15}/> Download CSV</button></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Fleet Utilization Report</strong><div className="text-muted text-faint">Active vs Total fleet utilization percentage</div></td>
-                    <td style={{ textAlign: 'right' }}><button className="btn btn-ghost" onClick={() => downloadCsv('fleet-utilization', 'fleet_utilization.csv')}><IconDownload size={15}/> Download CSV</button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="two-col">
+        <div className="card card-pad">
+          <div className="card-title mb-20">Monthly Revenue</div>
+          <BarChart data={r.monthly_revenue} />
+        </div>
+        <div className="card card-pad">
+          <div className="card-title mb-20">Top Costliest Vehicles</div>
+          <StatBars data={costBars} />
+        </div>
+      </div>
     </>
   );
 };

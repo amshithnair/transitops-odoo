@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../hooks/useData';
-import type { Driver, Vehicle, PaginatedResponse } from '../types';
-import { canEdit } from '../utils/roles';
-import { safetyColor, expiryInfo, fmtDate } from '../utils/status';
-import { PageHead, Badge, ColorBadge, Modal, exportCsv, Loader } from '../components/ui';
+import { useData, filterBy } from '../lib/useData';
+import { useSort } from '../lib/useSort';
+import { demoDrivers } from '../lib/demo';
+import type { Driver } from '../lib/types';
+import { canEdit } from '../lib/roles';
+import { safetyColor, expiryInfo, fmtDate } from '../lib/status';
+import { PageHead, Badge, ColorBadge, Modal, exportCsv, Th } from '../components/ui';
 import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert } from '../components/Icons';
 
 const DRIVER_STATUSES = ['Available', 'On Trip', 'Off Duty', 'Suspended'];
-const blank = (): Driver => ({ id: '', name: '', license_number: '', license_category: 'LMV', license_expiry_date: '', contact_number: '', email: '', experience_years: 0, safety_score: 80, status: 'Available' });
+const blank = (): Driver => ({ id: '', name: '', license_number: '', license_category: 'LMV', license_expiry: '', contact_number: '', safety_score: 80, status: 'Available' });
 
 export const DriversPage: React.FC = () => {
   const { user } = useAuth();
@@ -24,23 +26,31 @@ export const DriversPage: React.FC = () => {
   if (statusF) params.status = statusF;
   if (q) params.search = q;
 
-  const { data, loading, error, reload } = useData<PaginatedResponse<Driver>>('/drivers', params);
-  const { data: vehData } = useData<PaginatedResponse<Vehicle>>('/vehicles', { page_size: 1000 });
+  const { data, reload } = useData<Driver[]>('/drivers', demoDrivers);
 
-  const rows = data?.items ?? [];
-  const total = data?.total ?? 0;
-  const vehicles = vehData?.items ?? [];
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const rows = Array.isArray(data) ? data : demoDrivers;
+  const total = rows.length;
 
   const [form, setForm] = useState<Driver | null>(null);
   const [override, setOverride] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const selDriver = rows.find((d) => d.id === selected);
+
+  const setStatus = async (s: string) => {
+    if (!selDriver) return;
+    try { await client.patch(`/drivers/${selDriver.id}`, { status: s }); reload(); } catch { /* */ }
+  };
+
+  const filtered = filterBy(rows, q, ['name', 'license_number', 'license_category']);
+  const { sorted, toggle, arrow } = useSort<Driver>(filtered);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form) return;
     setErr(null);
-    const exp = expiryInfo(form.license_expiry_date);
+    const exp = expiryInfo(form.license_expiry);
     if (exp.expired && !override) { setErr('License expiry is in the past. Tick the override to save anyway.'); return; }
     try {
       if (form.id) await client.put(`/drivers/${form.id}`, form);
@@ -72,42 +82,50 @@ export const DriversPage: React.FC = () => {
         <div className="filter-group"><label>Status</label><select className="select" value={statusF} onChange={(e) => { setStatusF(e.target.value); setPage(1); }}><option value="">All</option>{DRIVER_STATUSES.map(s => <option key={s}>{s}</option>)}</select></div>
       </div>
 
-      {loading ? <Loader /> : error ? (
-        <div className="alert alert-danger">{error}</div>
-      ) : (
-        <div className="card">
-          <div className="table-wrap">
-            <table className="table">
-              <thead><tr><th>Driver</th><th>License No.</th><th>Category</th><th>Expiry</th><th>Contact</th><th>Exp. (yrs)</th><th>Safety</th><th>Assigned Vehicle</th><th>Status</th>{editable && <th></th>}</tr></thead>
-              <tbody>
-                {rows.map((d) => {
-                  const exp = expiryInfo(d.license_expiry_date);
-                  return (
-                    <tr key={d.id} className={exp.expired ? 'row-danger' : ''}>
-                      <td className="td-strong">{d.name}{d.email ? <div className="text-faint" style={{ fontSize: 11 }}>{d.email}</div> : ''}</td>
-                      <td className="mono">{d.license_number}</td>
-                      <td>{d.license_category}</td>
-                      <td><ColorBadge color={exp.color}>{fmtDate(d.license_expiry_date)} · {exp.label}</ColorBadge></td>
-                      <td className="text-muted">{d.contact_number || '—'}</td>
-                      <td>{d.experience_years ?? '—'}</td>
-                      <td><ColorBadge color={safetyColor(d.safety_score)}>{d.safety_score}</ColorBadge></td>
-                      <td className="mono text-muted">{d.assigned_vehicle_registration || '—'}</td>
-                      <td><Badge status={d.status} /></td>
-                      {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={() => { setErr(null); setOverride(false); setForm(d); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={() => remove(d)}><IconTrash size={15} /></button></div></td>}
-                    </tr>
-                  );
-                })}
-                {rows.length === 0 && <tr><td colSpan={editable ? 10 : 9} className="empty-row">No drivers match your filters.</td></tr>}
-              </tbody>
-            </table>
+      <div className="card">
+        <div className="table-wrap">
+          <table className="table">
+            <thead><tr>
+              <Th label="Driver" arrow={arrow('name')} onClick={() => toggle('name')} />
+              <Th label="License No." arrow={arrow('license_number')} onClick={() => toggle('license_number')} />
+              <Th label="Category" arrow={arrow('license_category')} onClick={() => toggle('license_category')} />
+              <Th label="Expiry" arrow={arrow('license_expiry')} onClick={() => toggle('license_expiry')} />
+              <th>Contact</th>
+              <Th label="Trip Compl." arrow={arrow('trip_completion_pct')} onClick={() => toggle('trip_completion_pct')} />
+              <Th label="Safety" arrow={arrow('safety_score')} onClick={() => toggle('safety_score')} />
+              <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
+              {editable && <th></th>}
+            </tr></thead>
+            <tbody>
+              {sorted.map((d) => {
+                const exp = expiryInfo(d.license_expiry);
+                return (
+                  <tr key={d.id} className={exp.expired ? 'row-danger' : ''} onClick={() => editable && setSelected(d.id)} style={{ cursor: editable ? 'pointer' : 'default', outline: selected === d.id ? '2px solid var(--accent)' : 'none', outlineOffset: -2 }}>
+                    <td className="td-strong">{d.name}</td>
+                    <td className="mono">{d.license_number}</td>
+                    <td>{d.license_category}</td>
+                    <td><ColorBadge color={exp.color}>{fmtDate(d.license_expiry)} · {exp.label}</ColorBadge></td>
+                    <td className="text-muted">{d.contact_number}</td>
+                    <td>{d.trip_completion_pct ?? '—'}%</td>
+                    <td><ColorBadge color={safetyColor(d.safety_score)}>{d.safety_score}</ColorBadge></td>
+                    <td><Badge status={d.status} /></td>
+                    {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setErr(null); setOverride(false); setForm(d); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={(e) => { e.stopPropagation(); remove(d); }}><IconTrash size={15} /></button></div></td>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {editable && (
+        <div className="card card-pad mt-16">
+          <div className="klabel" style={{ marginBottom: 10 }}>Toggle Status {selDriver ? `— ${selDriver.name}` : '(select a driver row)'}</div>
+          <div className="flex gap-8" style={{ flexWrap: 'wrap' }}>
+            {DRIVER_STATUSES.map((s) => (
+              <button key={s} className={`pill ${selDriver?.status === s ? 'active' : ''}`} disabled={!selected} onClick={() => setStatus(s)}>{s}</button>
+            ))}
           </div>
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button className="btn btn-sm btn-ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
-              <span className="page-info">Page {page} of {totalPages} ({total} total)</span>
-              <button className="btn btn-sm btn-ghost" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
-            </div>
-          )}
         </div>
       )}
 
@@ -120,23 +138,18 @@ export const DriversPage: React.FC = () => {
             {err && <div className="alert alert-danger">{err}</div>}
             <div className="field-row">
               <div className="field"><label>Name</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="field"><label>Email</label><input className="input" type="email" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="alex@transitops.com" /></div>
             </div>
             <div className="field-row">
               <div className="field"><label>License Number</label><input className="input" required value={form.license_number} onChange={(e) => setForm({ ...form, license_number: e.target.value })} placeholder="DL-2024-0042" /></div>
               <div className="field"><label>Category</label><select className="select" value={form.license_category} onChange={(e) => setForm({ ...form, license_category: e.target.value })}><option>LMV</option><option>HMV</option><option>MGV</option><option>B</option><option>C</option><option>C+E</option></select></div>
             </div>
             <div className="field-row">
-              <div className="field"><label>License Expiry</label><input className="input" type="date" required value={form.license_expiry_date} onChange={(e) => setForm({ ...form, license_expiry_date: e.target.value })} /></div>
+              <div className="field"><label>License Expiry</label><input className="input" type="date" required value={form.license_expiry} onChange={(e) => setForm({ ...form, license_expiry: e.target.value })} /></div>
               <div className="field"><label>Contact</label><input className="input" value={form.contact_number || ''} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} /></div>
             </div>
             <div className="field-row">
-              <div className="field"><label>Experience (years)</label><input className="input" type="number" min={0} value={form.experience_years ?? ''} onChange={(e) => setForm({ ...form, experience_years: e.target.value ? +e.target.value : null })} /></div>
               <div className="field"><label>Safety Score</label><input className="input" type="number" min={0} max={100} value={form.safety_score} onChange={(e) => setForm({ ...form, safety_score: +e.target.value })} /></div>
-            </div>
-            <div className="field-row">
               <div className="field"><label>Status</label><select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{DRIVER_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></div>
-              <div className="field"><label>Assigned Vehicle</label><select className="select" value={form.assigned_vehicle_id || ''} onChange={(e) => setForm({ ...form, assigned_vehicle_id: e.target.value || null })}><option value="">None</option>{vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}</select></div>
             </div>
             <label className="checkbox"><input type="checkbox" checked={override} onChange={(e) => setOverride(e.target.checked)} />Override — allow save with expired license</label>
           </form>

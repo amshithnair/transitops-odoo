@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../hooks/useData';
-import type { Vehicle, PaginatedResponse } from '../types';
-import { canEdit } from '../utils/roles';
-import { fmtNum, expiryInfo } from '../utils/status';
-import { PageHead, Badge, ColorBadge, Modal, exportCsv, Loader } from '../components/ui';
-import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert } from '../components/Icons';
+import { useData, filterBy } from '../lib/useData';
+import { useSort } from '../lib/useSort';
+import { demoVehicles } from '../lib/demo';
+import type { Vehicle } from '../lib/types';
+import { canEdit } from '../lib/roles';
+import { fmtNum } from '../lib/status';
+import { PageHead, Badge, Modal, exportCsv, Th } from '../components/ui';
+import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert, IconFile, IconUpload } from '../components/Icons';
 
 const FUEL_TYPES = ['Diesel', 'Petrol', 'CNG', 'Electric'];
 const VEH_TYPES = ['Van', 'Truck', 'Mini'];
 const VEH_STATUSES = ['Available', 'On Trip', 'In Shop', 'Retired'];
 
-const blank = (): Vehicle => ({ id: '', registration_number: '', name_model: '', type: 'Van', max_load_capacity_kg: 500, odometer_km: 0, acquisition_cost: 0, status: 'Available', region: '', manufacturer: '', fuel_type: 'Diesel', purchase_date: '', insurance_expiry: '', fitness_expiry: '', puc_expiry: '' });
+const blank = (): Vehicle => ({ id: '', registration_number: '', name_model: '', type: 'Van', max_load_capacity_kg: 500, odometer_km: 0, acquisition_cost: 0, status: 'Available', region: '' });
 
 export const VehiclesPage: React.FC = () => {
   const { user } = useAuth();
@@ -31,14 +33,18 @@ export const VehiclesPage: React.FC = () => {
   if (fuelType) params.fuel_type = fuelType;
   if (q) params.search = q;
 
-  const { data, loading, error, reload } = useData<PaginatedResponse<Vehicle>>('/vehicles', params);
+  const { data, loading, reload } = useData<Vehicle[]>('/vehicles', demoVehicles);
 
-  const rows = data?.items ?? [];
-  const total = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const rows = Array.isArray(data) ? data : demoVehicles;
+  const total = rows.length;
 
   const [form, setForm] = useState<Vehicle | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  const filtered = filterBy(rows, q, ['registration_number', 'name_model'])
+    .filter((v) => !type || v.type === type)
+    .filter((v) => !status || v.status === status);
+  const { sorted, toggle, arrow } = useSort<Vehicle>(filtered);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,43 +82,37 @@ export const VehiclesPage: React.FC = () => {
         <div className="filter-group"><label>Fuel Type</label><select className="select" value={fuelType} onChange={(e) => { setFuelType(e.target.value); setPage(1); }}><option value="">All</option>{FUEL_TYPES.map(f => <option key={f}>{f}</option>)}</select></div>
       </div>
 
-      {loading ? <Loader /> : error ? (
-        <div className="alert alert-danger">{error}</div>
-      ) : (
-        <div className="card">
-          <div className="table-wrap">
-            <table className="table">
-              <thead><tr><th>Reg. No.</th><th>Name / Model</th><th>Type</th><th>Fuel</th><th>Capacity</th><th>Odometer</th><th>Insurance</th><th>Status</th>{editable && <th></th>}</tr></thead>
-              <tbody>
-                {rows.map((v) => {
-                  const insExp = v.insurance_expiry ? expiryInfo(v.insurance_expiry) : null;
-                  return (
-                    <tr key={v.id}>
-                      <td className="mono td-strong">{v.registration_number}</td>
-                      <td>{v.name_model}{v.manufacturer ? <span className="text-faint"> · {v.manufacturer}</span> : ''}</td>
-                      <td>{v.type}</td>
-                      <td>{v.fuel_type || '—'}</td>
-                      <td>{fmtNum(v.max_load_capacity_kg)} kg</td>
-                      <td>{fmtNum(v.odometer_km)} km</td>
-                      <td>{insExp ? <ColorBadge color={insExp.color}>{insExp.label}</ColorBadge> : '—'}</td>
-                      <td><Badge status={v.status} /></td>
-                      {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={() => { setErr(null); setForm(v); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={() => remove(v)}><IconTrash size={15} /></button></div></td>}
-                    </tr>
-                  );
-                })}
-                {!loading && rows.length === 0 && <tr><td colSpan={editable ? 9 : 8} className="empty-row">No vehicles match your filters.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button className="btn btn-sm btn-ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
-              <span className="page-info">Page {page} of {totalPages} ({total} total)</span>
-              <button className="btn btn-sm btn-ghost" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
-            </div>
-          )}
+      <div className="card">
+        <div className="table-wrap">
+          <table className="table">
+            <thead><tr>
+              <Th label="Reg. No." arrow={arrow('registration_number')} onClick={() => toggle('registration_number')} />
+              <Th label="Name / Model" arrow={arrow('name_model')} onClick={() => toggle('name_model')} />
+              <Th label="Type" arrow={arrow('type')} onClick={() => toggle('type')} />
+              <Th label="Capacity" arrow={arrow('max_load_capacity_kg')} onClick={() => toggle('max_load_capacity_kg')} />
+              <Th label="Odometer" arrow={arrow('odometer_km')} onClick={() => toggle('odometer_km')} />
+              <Th label="Acq. Cost" arrow={arrow('acquisition_cost')} onClick={() => toggle('acquisition_cost')} />
+              <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
+              {editable && <th></th>}
+            </tr></thead>
+            <tbody>
+              {sorted.map((v) => (
+                <tr key={v.id}>
+                  <td className="mono td-strong">{v.registration_number}</td>
+                  <td>{v.name_model}</td>
+                  <td>{v.type}</td>
+                  <td>{fmtNum(v.max_load_capacity_kg)} kg</td>
+                  <td>{fmtNum(v.odometer_km)} km</td>
+                  <td>₹{fmtNum(v.acquisition_cost)}</td>
+                  <td><Badge status={v.status} /></td>
+                  {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={() => { setErr(null); setForm(v); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={() => remove(v)}><IconTrash size={15} /></button></div></td>}
+                </tr>
+              ))}
+              {!loading && filtered.length === 0 && <tr><td colSpan={editable ? 8 : 7} className="empty-row">No vehicles match your filters.</td></tr>}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
       <div className="rule-note"><IconAlert size={15} />Rule: Registration No. must be unique · Retired / In Shop vehicles are hidden from the Trip Dispatcher.</div>
 
@@ -124,11 +124,7 @@ export const VehiclesPage: React.FC = () => {
             <div className="field"><label>Registration Number (unique)</label><input className="input" required value={form.registration_number} onChange={(e) => setForm({ ...form, registration_number: e.target.value })} placeholder="VAN-05" /></div>
             <div className="field-row">
               <div className="field"><label>Name / Model</label><input className="input" required value={form.name_model} onChange={(e) => setForm({ ...form, name_model: e.target.value })} placeholder="Ford Transit 2024" /></div>
-              <div className="field"><label>Manufacturer</label><input className="input" value={form.manufacturer || ''} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} placeholder="Ford" /></div>
-            </div>
-            <div className="field-row">
               <div className="field"><label>Type</label><select className="select" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>{VEH_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
-              <div className="field"><label>Fuel Type</label><select className="select" value={form.fuel_type || 'Diesel'} onChange={(e) => setForm({ ...form, fuel_type: e.target.value })}>{FUEL_TYPES.map(f => <option key={f}>{f}</option>)}</select></div>
             </div>
             <div className="field-row">
               <div className="field"><label>Max Load (kg)</label><input className="input" type="number" min={1} required value={form.max_load_capacity_kg} onChange={(e) => setForm({ ...form, max_load_capacity_kg: +e.target.value })} /></div>
@@ -136,17 +132,38 @@ export const VehiclesPage: React.FC = () => {
             </div>
             <div className="field-row">
               <div className="field"><label>Acquisition Cost (₹)</label><input className="input" type="number" min={0} value={form.acquisition_cost} onChange={(e) => setForm({ ...form, acquisition_cost: +e.target.value })} /></div>
-              <div className="field"><label>Purchase Date</label><input className="input" type="date" value={form.purchase_date || ''} onChange={(e) => setForm({ ...form, purchase_date: e.target.value || null })} /></div>
             </div>
             <div className="field-row">
               <div className="field"><label>Status</label><select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{VEH_STATUSES.map(s => <option key={s}>{s}</option>)}</select></div>
               <div className="field"><label>Region</label><input className="input" value={form.region || ''} onChange={(e) => setForm({ ...form, region: e.target.value })} placeholder="North" /></div>
             </div>
-            <div className="field-row">
-              <div className="field"><label>Insurance Expiry</label><input className="input" type="date" value={form.insurance_expiry || ''} onChange={(e) => setForm({ ...form, insurance_expiry: e.target.value || null })} /></div>
-              <div className="field"><label>Fitness Expiry</label><input className="input" type="date" value={form.fitness_expiry || ''} onChange={(e) => setForm({ ...form, fitness_expiry: e.target.value || null })} /></div>
+
+            <div className="field">
+              <label>Documents (RC / Insurance / Permit)</label>
+              <div className="flex gap-8" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
+                {(form.documents || []).map((d) => (
+                  <span className="badge b-blue" key={d.id}><IconFile size={11} />{d.label}: {d.filename}</span>
+                ))}
+                {(!form.documents || form.documents.length === 0) && <span className="text-faint" style={{ fontSize: 12 }}>No documents uploaded yet.</span>}
+              </div>
+              <div className="field-row">
+                {(['RC', 'Insurance', 'Permit'] as const).map((label) => (
+                  <label key={label} className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+                    <IconUpload size={13} />{label}
+                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => {
+                      const file = e.target.files?.[0]; if (!file || !form) return;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const doc = { id: `doc${Date.now()}`, label, filename: file.name, dataUrl: String(reader.result), uploaded_at: new Date().toISOString() };
+                        setForm({ ...form, documents: [...(form.documents || []).filter((d) => d.label !== label), doc] });
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = '';
+                    }} />
+                  </label>
+                ))}
+              </div>
             </div>
-            <div className="field"><label>PUC Expiry</label><input className="input" type="date" value={form.puc_expiry || ''} onChange={(e) => setForm({ ...form, puc_expiry: e.target.value || null })} /></div>
           </form>
         </Modal>
       )}
