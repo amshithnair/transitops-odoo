@@ -9,18 +9,17 @@ import type { Vehicle, Driver, Trip, Maintenance } from '../lib/types';
 import { roleLabel, type Section } from '../lib/roles';
 import {
   IconDashboard, IconTruck, IconUsers, IconRoute, IconWrench, IconFuel,
-  IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconLogout, IconMenu, IconClose,
+  IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconMenu, IconClose, IconLogout,
 } from './Icons';
+import { Modal } from './ui';
 
-interface NavItem { path: string; label: string; icon: React.FC<{ size?: number }>; section?: Section; }
+interface NavItem { path: string; label: string; icon: React.FC<{ size?: number; className?: string }>; section?: Section; }
 
 const NAV: NavItem[] = [
   { path: '/', label: 'Dashboard', icon: IconDashboard },
   { path: '/vehicles', label: 'Fleet', icon: IconTruck, section: 'fleet' },
   { path: '/drivers', label: 'Drivers', icon: IconUsers, section: 'drivers' },
   { path: '/trips', label: 'Trips', icon: IconRoute, section: 'trips' },
-  { path: '/dispatch', label: 'AI Dispatch', icon: IconRoute, section: 'trips' },
-  { path: '/map', label: 'Fleet Map', icon: IconRoute },
   { path: '/maintenance', label: 'Maintenance', icon: IconWrench, section: 'fleet' },
   { path: '/fuel-expense', label: 'Fuel & Expenses', icon: IconFuel, section: 'fuel' },
   { path: '/reports', label: 'Analytics', icon: IconChart, section: 'analytics' },
@@ -33,7 +32,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
   const { data: vehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
   const { data: drivers } = useData<Driver[]>('/drivers', demoDrivers);
@@ -51,44 +52,80 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const initials = (user?.name || 'U').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
   const closeMobile = () => setMobileOpen(false);
-
   return (
     <div className="app-shell">
       {mobileOpen && <div className="sidebar-backdrop open" onClick={closeMobile} />}
-      <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${mobileOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-brand">
-          <div className="brand-mark">T</div>
+          <div className="brand-mark">
+            <div className="brand-mark-inner"></div>
+          </div>
           <div className="brand-text">
             <span className="name">TransitOps</span>
-            <span className="tag">Smart Transport Ops</span>
+            <span className="tag">Smart Transport Operations</span>
           </div>
         </div>
+
+        <div className="sidebar-search">
+          <IconSearch size={15} />
+          <input placeholder="Search" />
+        </div>
+
         <nav className="sidebar-nav">
-          <div className="nav-section-label">Operations</div>
           {visible.map((n) => {
-            const Icon = n.icon;
             const active = location.pathname === n.path;
             return (
-              <Link key={n.path} to={n.path} className={`nav-link ${active ? 'active' : ''}`} onClick={closeMobile}>
-                <Icon size={18} />{n.label}
+              <Link key={n.path} to={n.path} className={`nav-link ${active ? 'active' : ''}`} onClick={closeMobile} title={n.label}>
+                <n.icon size={18} className="nav-icon" />
+                <span className="nav-link-label">{n.label}</span>
               </Link>
             );
           })}
         </nav>
-        <div className="sidebar-foot">TRANSITOPS © 2026 · RBAC v1.0</div>
+
+        <div className="sidebar-profile-box">
+            <div className="profile-details">
+              <div className="profile-avatar">{initials}</div>
+              <div className="profile-text">
+                <div className="profile-name">{user?.name || 'Raven K.'}</div>
+                <div className="profile-role">{roleLabel(user?.role) || 'Fleet Manager'}</div>
+              </div>
+            </div>
+            <button 
+              className="icon-btn logout-btn" 
+              onClick={() => setLogoutModalOpen(true)} 
+              title="Logout"
+            >
+              <IconLogout size={16} />
+            </button>
+          <button className="go-to-hub-btn" onClick={() => navigate('/')} title="Go to Hub">
+            <span className="hub-text">Go to Hub</span>
+            <span className="hub-arrow" style={{ fontSize: '11px', fontWeight: 'bold' }}>↗</span>
+          </button>
+        </div>
       </aside>
 
       <div className="main">
         <header className="topbar">
-          <button className="icon-btn hamburger" onClick={() => setMobileOpen((v) => !v)} title="Menu">
+          <button 
+            className="icon-btn hamburger" 
+            onClick={() => {
+              if (window.innerWidth <= 768) setMobileOpen(v => !v);
+              else setSidebarCollapsed(v => !v);
+            }} 
+            title="Menu"
+          >
             {mobileOpen ? <IconClose size={17} /> : <IconMenu size={17} />}
           </button>
           <div className="topbar-title">{current?.label || 'TransitOps'}</div>
-          <div className="search-box">
-            <IconSearch size={15} />
-            <input placeholder="Search…" />
-          </div>
           <div className="topbar-spacer" />
+          
+          <div className="topbar-stats">
+            <span className="topbar-stat-item"><span className="dot dot-green" /> 0 ISSUES</span>
+            <span className="topbar-stat-item"><span className="dot dot-yellow" /> 3 DELAYS</span>
+            <span className="topbar-stat-item"><span className="dot dot-blue" /> 5 ON TRACK</span>
+          </div>
+
           <div className="notif-wrap">
             <button className="icon-btn" title="Notifications" onClick={() => setNotifOpen((v) => !v)}>
               <IconBell size={17} />{notices.length > 0 && <span className="dot" />}
@@ -109,15 +146,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </div>
             )}
           </div>
+          
           <button className="icon-btn" onClick={toggle} title="Toggle theme">
             {theme === 'dark' ? <IconSun size={17} /> : <IconMoon size={17} />}
-          </button>
-          <div className="user-chip" title={roleLabel(user?.role)}>
-            <span className="uname">{user?.name}</span>
-            <span className="avatar">{initials}</span>
-          </div>
-          <button className="icon-btn" onClick={() => { logout(); navigate('/login'); }} title="Logout">
-            <IconLogout size={17} />
           </button>
         </header>
 
@@ -125,6 +156,23 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <div className="content-inner">{children}</div>
         </main>
       </div>
+
+      {logoutModalOpen && (
+        <Modal
+          title="Confirm Logout"
+          onClose={() => setLogoutModalOpen(false)}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setLogoutModalOpen(false)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => { logout(); navigate('/login'); }}>Logout</button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-muted)' }}>
+            Are you sure you want to log out of TransitOps?
+          </p>
+        </Modal>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { statusColor, type BadgeColor } from '../lib/status';
-import { IconClose } from './Icons';
+import { IconClose, IconCheck } from './Icons';
 
 /* ── Status badge ── */
 export const Badge: React.FC<{ status: string }> = ({ status }) => (
@@ -71,15 +71,34 @@ export const BarChart: React.FC<{ data: { month: string; value: number }[] }> = 
 };
 
 /* ── Modal ── */
-export const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode }> = ({ title, onClose, children, footer }) => (
+export const Modal: React.FC<{ 
+  title: string; 
+  onClose: () => void; 
+  children: React.ReactNode; 
+  footer?: React.ReactNode;
+  splitIcon?: React.ReactNode;
+  splitTitle?: string;
+  splitDesc?: string;
+}> = ({ title, onClose, children, footer, splitIcon, splitTitle, splitDesc }) => (
   <div className="modal-backdrop" onClick={onClose}>
-    <div className="modal" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-head">
-        <h3>{title}</h3>
-        <button className="modal-x" onClick={onClose}><IconClose size={18} /></button>
+    <div className={`modal ${splitIcon ? 'modal-split' : ''}`} onClick={(e) => e.stopPropagation()}>
+      {splitIcon && (
+        <div className="modal-left-panel">
+          <div className="mlp-content">
+            <div className="mlp-icon">{splitIcon}</div>
+            <h2 className="mlp-title">{splitTitle || title}</h2>
+            {splitDesc && <p className="mlp-desc">{splitDesc}</p>}
+          </div>
+        </div>
+      )}
+      <div className="modal-right-panel">
+        <div className="modal-head">
+          <h3>{title}</h3>
+          <button className="modal-x" onClick={onClose}><IconClose size={18} /></button>
+        </div>
+        <div className="modal-body">{children}</div>
+        {footer && <div className="modal-foot">{footer}</div>}
       </div>
-      <div className="modal-body">{children}</div>
-      {footer && <div className="modal-foot">{footer}</div>}
     </div>
   </div>
 );
@@ -87,6 +106,61 @@ export const Modal: React.FC<{ title: string; onClose: () => void; children: Rea
 /* ── Sortable table header cell ── */
 export const Th: React.FC<{ label: string; active?: boolean; arrow?: string; onClick?: () => void }> = ({ label, active, arrow, onClick }) =>
   onClick ? <th><span className="th-sort" onClick={onClick} style={active ? { color: 'var(--text)' } : undefined}>{label}<span className="arrow">{arrow}</span></span></th> : <th>{label}</th>;
+
+/* ── Custom Select (Animated Dropdown) ── */
+export const CustomSelect: React.FC<{
+  value: string;
+  onChange: (val: string) => void;
+  options: ({ label: string; value: string } | string)[];
+  placeholder?: string;
+  disabled?: boolean;
+}> = ({ value, onChange, options, placeholder = 'Select...', disabled }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const clickOut = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', clickOut);
+    return () => document.removeEventListener('mousedown', clickOut);
+  }, []);
+
+  const normalized = options.map(o => typeof o === 'string' ? { label: o || 'All', value: o } : o);
+  const current = normalized.find(o => o.value === value) || { label: placeholder, value: '' };
+
+  return (
+    <div className="custom-select-wrap" ref={ref}>
+      <button 
+        type="button"
+        className="custom-select-btn" 
+        onClick={() => !disabled && setOpen(!open)}
+        disabled={disabled}
+        style={disabled ? { opacity: 0.7, cursor: 'not-allowed', background: 'var(--surface-card)' } : {}}
+      >
+        <span>{current.label}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      {open && (
+        <div className="custom-select-menu">
+          {normalized.map(opt => {
+            const isSelected = opt.value === value;
+            return (
+              <div 
+                key={opt.value} 
+                className={`custom-select-opt ${isSelected ? 'selected' : ''}`}
+                onClick={() => { onChange(opt.value); setOpen(false); }}
+              >
+                <span>{opt.label}</span>
+                {isSelected && <IconCheck size={14} />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 /* ── Loading spinner ── */
 export const Loader: React.FC = () => <div className="center-load"><div className="spinner" /></div>;

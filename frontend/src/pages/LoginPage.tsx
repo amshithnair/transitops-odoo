@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, type UserRole, type User } from '../context/AuthContext';
 import client from '../api/client';
-import { ALL_ROLES, ROLE_LABELS, ROLE_COLORS, ROLE_SCOPE } from '../lib/roles';
+import { ALL_ROLES, ROLE_LABELS, ROLE_SCOPE } from '../lib/roles';
+import { CustomSelect } from '../components/ui';
 
 const DEMO: Record<UserRole, { email: string; pass: string; name: string }> = {
   superadmin:        { email: 'admin@transitops.com',    pass: 'admin123',   name: 'Root Admin' },
@@ -71,27 +72,35 @@ export const LoginPage: React.FC = () => {
       <aside className="login-aside">
         <div>
           <div className="a-top">
-            <div className="brand-mark" style={{ width: 40, height: 40, fontSize: 18 }}>T</div>
-            <div>
-              <h2>TransitOps</h2>
+            <div className="brand-mark" style={{ transform: 'rotate(45deg)' }}>
+              <div className="brand-mark-inner"></div>
+            </div>
+            <div className="brand-text">
+              <span className="name">TransitOps</span>
+              <span className="tag">Smart Transport Operations</span>
             </div>
           </div>
-          <div className="a-tag">Smart Transport Operations Platform</div>
+
+          <h1 style={{ marginTop: '64px', marginBottom: '24px', fontSize: '38px', fontWeight: '800' }}>
+            One login,<br />four roles.
+          </h1>
 
           <div className="roles-list">
-            <div className="rl-head">One login · four roles</div>
-            {ALL_ROLES.map((r) => (
-              <div className="role-item" key={r}>
-                <span className="rdot" style={{ background: ROLE_COLORS[r] }} />
-                <div>
-                  <div className="rname">{ROLE_LABELS[r]}</div>
-                  <div className="rdesc">{ROLE_SCOPE[r]}</div>
-                </div>
+            {[
+              { role: 'fleet_manager', color: '#10b981', scope: 'Fleet · Maintenance' },
+              { role: 'driver', color: '#3b82f6', scope: 'Dashboard · Trips' },
+              { role: 'safety_officer', color: '#f59e0b', scope: 'Drivers · Compliance' },
+              { role: 'financial_analyst', color: '#8b5cf6', scope: 'Fuel/Expenses · Analytics' }
+            ].map((item) => (
+              <div className="role-item" key={item.role}>
+                <span className="rdot" style={{ background: item.color }} />
+                <span className="rname">{ROLE_LABELS[item.role as UserRole]}</span>
+                <span className="rdesc">{item.scope}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="a-foot">TRANSITOPS © 2026 · RBAC v1.0 · Role-scoped access</div>
+        <div className="a-foot">TRANSITOPS © 2026 · RBAC v2.0</div>
       </aside>
 
       <main className="login-main">
@@ -111,9 +120,11 @@ export const LoginPage: React.FC = () => {
           </div>
           <div className="field">
             <label>Role (scopes your access)</label>
-            <select className="select" value={role} onChange={(e) => pickRole(e.target.value as UserRole)}>
-              {ALL_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-            </select>
+            <CustomSelect 
+              value={role} 
+              onChange={(v) => pickRole(v as UserRole)}
+              options={ALL_ROLES.map(r => ({ value: r, label: ROLE_LABELS[r] }))}
+            />
           </div>
 
           <div className="flex items-center" style={{ justifyContent: 'space-between', margin: '4px 0 18px' }}>

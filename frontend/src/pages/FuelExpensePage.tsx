@@ -7,8 +7,8 @@ import { demoFuel, demoExpenses, demoVehicles } from '../lib/demo';
 import type { FuelLog, Expense, Vehicle } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { fmtNum, fmtDate } from '../lib/status';
-import { PageHead, Modal, exportCsv, Th, StatBars } from '../components/ui';
-import { IconPlus, IconDownload } from '../components/Icons';
+import { PageHead, Modal, exportCsv, Th, CustomSelect } from '../components/ui';
+import { IconFuel, IconChart, IconPlus, IconDownload } from '../components/Icons';
 
 type ModalKind = 'fuel' | 'expense' | null;
 
@@ -155,12 +155,15 @@ export const FuelExpensePage: React.FC = () => {
       )}
 
       {modal === 'fuel' && (
-        <Modal title={editId ? 'Edit Fuel Log' : 'Log Fuel'} onClose={() => setModal(null)} footer={<><button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary" form="fuel-form">Save</button></>}>
+        <Modal 
+          title="Log Fuel" 
+          splitIcon={<IconFuel size={32} />}
+          splitTitle="Fuel Logging"
+          splitDesc="Record fuel consumption to keep operational expense metrics accurate."
+          onClose={() => setModal(null)} 
+          footer={<><button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary" form="fuel-form">Save</button></>}>
           <form id="fuel-form" onSubmit={saveFuel}>
-            {err && <div className="alert alert-danger">{err}</div>}
-            <div className="field-row">
-              <div className="field"><label>Vehicle</label><select className="select" required value={f.vehicle_label} onChange={(e) => setF({ ...f, vehicle_label: e.target.value })}><option value="">Select…</option>{vehRows.map((v) => <option key={v.id} value={v.registration_number}>{v.registration_number}</option>)}</select></div>
-            </div>
+            <div className="field"><label>Vehicle</label><CustomSelect value={f.vehicle_label} onChange={(v) => setF({ ...f, vehicle_label: v })} options={[{value: '', label: 'Select…'}, ...vehRows.map(v => v.registration_number)]} placeholder="Select…" /></div>
             <div className="field-row">
               <div className="field"><label>Date</label><input className="input" type="date" required value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></div>
               <div className="field"><label>Liters</label><input className="input" type="number" min={0.1} step="0.1" required value={f.liters || ''} onChange={(e) => setF({ ...f, liters: +e.target.value })} /></div>
@@ -173,16 +176,18 @@ export const FuelExpensePage: React.FC = () => {
       )}
 
       {modal === 'expense' && (
-        <Modal title={editId ? 'Edit Expense' : 'Add Expense'} onClose={() => setModal(null)} footer={<><button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary" form="exp-form">Save</button></>}>
+        <Modal 
+          title="Add Expense" 
+          splitIcon={<IconChart size={32} />}
+          splitTitle="Trip Expenses"
+          splitDesc="Log tolls, miscellaneous fees, and maintenance costs associated with trips."
+          onClose={() => setModal(null)} 
+          footer={<><button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary" form="exp-form">Save</button></>}>
           <form id="exp-form" onSubmit={saveExpense}>
             {err && <div className="alert alert-danger">{err}</div>}
             <div className="field-row">
               <div className="field"><label>Trip Code</label><input className="input" value={ex.trip_code} onChange={(e) => setEx({ ...ex, trip_code: e.target.value })} placeholder="TR001" /></div>
-              <div className="field"><label>Vehicle</label><select className="select" required value={ex.vehicle_label} onChange={(e) => setEx({ ...ex, vehicle_label: e.target.value })}><option value="">Select…</option>{vehRows.map((v) => <option key={v.id} value={v.registration_number}>{v.registration_number}</option>)}</select></div>
-            </div>
-            <div className="field-row">
-              <div className="field"><label>Toll (₹)</label><input className="input" type="number" min={0} step="0.01" required value={ex.toll || ''} onChange={(e) => setEx({ ...ex, toll: +e.target.value })} /></div>
-              <div className="field"><label>Other Misc (₹)</label><input className="input" type="number" min={0} step="0.01" required value={ex.other_misc || ''} onChange={(e) => setEx({ ...ex, other_misc: +e.target.value })} /></div>
+              <div className="field"><label>Vehicle</label><CustomSelect value={ex.vehicle_label} onChange={(v) => setEx({ ...ex, vehicle_label: v })} options={[{value: '', label: 'Select…'}, ...vehRows.map(v => v.registration_number)]} placeholder="Select…" /></div>
             </div>
             <div className="field-row">
               <div className="field"><label>Total (₹)</label><input className="input" type="number" min={0} step="0.01" required value={ex.total || ''} onChange={(e) => setEx({ ...ex, total: +e.target.value })} /></div>

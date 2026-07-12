@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { PageHead } from '../components/ui';
+import { PageHead, CustomSelect } from '../components/ui';
 import { ALL_ROLES, RBAC, ROLE_LABELS, SECTION_LABELS } from '../lib/roles';
 import { getActivity, clearActivity, type ActivityEvent } from '../lib/activity';
 import { fmtDate } from '../lib/status';
@@ -43,10 +43,10 @@ export const SettingsPage: React.FC = () => {
           <form onSubmit={save}>
             <div className="field"><label>Depot Name</label><input className="input" value={depot} onChange={(e) => setDepot(e.target.value)} /></div>
             <div className="field"><label>Currency</label>
-              <select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}><option>INR (₹)</option><option>USD ($)</option><option>EUR (€)</option></select>
+              <CustomSelect value={currency} onChange={setCurrency} options={['INR (₹)', 'USD ($)', 'EUR (€)']} />
             </div>
             <div className="field"><label>Distance Unit</label>
-              <select className="select" value={unit} onChange={(e) => setUnit(e.target.value)}><option>Kilometers</option><option>Miles</option></select>
+              <CustomSelect value={unit} onChange={setUnit} options={['Kilometers', 'Miles']} />
             </div>
             <button className="btn btn-primary">{saved ? <><IconCheck size={15} />Saved</> : 'Save Changes'}</button>
           </form>
