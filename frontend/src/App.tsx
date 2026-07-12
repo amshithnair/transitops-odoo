@@ -4,7 +4,6 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 
-// Pages
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import VehiclesPage from './pages/VehiclesPage';
@@ -13,94 +12,33 @@ import TripsPage from './pages/TripsPage';
 import MaintenancePage from './pages/MaintenancePage';
 import FuelExpensePage from './pages/FuelExpensePage';
 import ReportsPage from './pages/ReportsPage';
+import SettingsPage from './pages/SettingsPage';
 
-const App: React.FC = () => {
-  return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Public login route */}
-          <Route path="/login" element={<LoginPage />} />
+const wrap = (el: React.ReactNode) => <Layout>{el}</Layout>;
 
-          {/* Protected routes */}
-          <Route element={<ProtectedRoute />}>
-            {/* Any role access */}
-            <Route
-              path="/"
-              element={
-                <Layout>
-                  <DashboardPage />
-                </Layout>
-              }
-            />
-            <Route
-              path="/vehicles"
-              element={
-                <Layout>
-                  <VehiclesPage />
-                </Layout>
-              }
-            />
-            <Route
-              path="/trips"
-              element={
-                <Layout>
-                  <TripsPage />
-                </Layout>
-              }
-            />
-            <Route
-              path="/maintenance"
-              element={
-                <Layout>
-                  <MaintenancePage />
-                </Layout>
-              }
-            />
+const App: React.FC = () => (
+  <AuthProvider>
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
 
-            {/* Manager and Safety Officer only */}
-            <Route element={<ProtectedRoute allowedRoles={['fleet_manager', 'safety_officer']} />}>
-              <Route
-                path="/drivers"
-                element={
-                  <Layout>
-                    <DriversPage />
-                  </Layout>
-                }
-              />
-            </Route>
+        {/* All screens reachable by any authenticated user (full nav, per mockup).
+            Access is scoped inside each page: view-only vs full CRUD per RBAC matrix. */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={wrap(<DashboardPage />)} />
+          <Route path="/vehicles" element={wrap(<VehiclesPage />)} />
+          <Route path="/maintenance" element={wrap(<MaintenancePage />)} />
+          <Route path="/drivers" element={wrap(<DriversPage />)} />
+          <Route path="/trips" element={wrap(<TripsPage />)} />
+          <Route path="/fuel-expense" element={wrap(<FuelExpensePage />)} />
+          <Route path="/reports" element={wrap(<ReportsPage />)} />
+          <Route path="/settings" element={wrap(<SettingsPage />)} />
+        </Route>
 
-            {/* Manager, Driver, and Finance Analyst only */}
-            <Route element={<ProtectedRoute allowedRoles={['fleet_manager', 'driver', 'financial_analyst']} />}>
-              <Route
-                path="/fuel-expense"
-                element={
-                  <Layout>
-                    <FuelExpensePage />
-                  </Layout>
-                }
-              />
-            </Route>
-
-            {/* Manager, Safety Officer, and Finance Analyst only */}
-            <Route element={<ProtectedRoute allowedRoles={['fleet_manager', 'safety_officer', 'financial_analyst']} />}>
-              <Route
-                path="/reports"
-                element={
-                  <Layout>
-                    <ReportsPage />
-                  </Layout>
-                }
-              />
-            </Route>
-          </Route>
-
-          {/* Catch-all redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
-  );
-};
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  </AuthProvider>
+);
 
 export default App;

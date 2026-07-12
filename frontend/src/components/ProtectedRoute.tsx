@@ -1,29 +1,16 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth, type UserRole } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
+import { canView, type Section } from '../lib/roles';
 
-interface ProtectedRouteProps {
-  allowedRoles?: UserRole[];
-}
+interface ProtectedRouteProps { section?: Section; }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const { user, loading, hasRole } = useAuth();
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ section }) => {
+  const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <h3>Loading session...</h3>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRoles && !hasRole(allowedRoles)) {
-    return <Navigate to="/" replace />;
-  }
+  if (loading) return <div className="center-load"><div className="spinner" /></div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (section && !canView(user.role, section)) return <Navigate to="/" replace />;
 
   return <Outlet />;
 };

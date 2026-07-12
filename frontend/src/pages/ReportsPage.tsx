@@ -1,186 +1,52 @@
-import React, { useState, useEffect } from 'react';
-import client from '../api/client';
-import { useAuth } from '../context/AuthContext';
-
-type ReportType = 'fuel-efficiency' | 'fleet-utilization' | 'operational-cost' | 'vehicle-roi';
+import React from 'react';
+import { useData } from '../lib/useData';
+import { demoReport } from '../lib/demo';
+import type { ReportData } from '../lib/types';
+import { fmtNum } from '../lib/status';
+import { PageHead, Kpi, BarChart, StatBars, exportCsv } from '../components/ui';
+import { IconDownload, IconFuel, IconChart, IconRoute } from '../components/Icons';
 
 export const ReportsPage: React.FC = () => {
-  const [reportType, setReportType] = useState<ReportType>('fuel-efficiency');
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { token } = useAuth();
+  const { data } = useData<ReportData>('/reports', demoReport);
+  const r = data && (data as ReportData).monthly_revenue ? (data as ReportData) : demoReport;
 
-  const fetchReport = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await client.get(`/reports/${reportType}`);
-      setData(res.data);
-    } catch (err) {
-      setError(`Failed to fetch report metrics.`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const costBars = r.costliest_vehicles.map((c, i) => ({ label: c.label, value: c.value, color: [ 'var(--red)', 'var(--amber)', 'var(--blue)' ][i] || 'var(--blue)' }));
 
-  useEffect(() => {
-    fetchReport();
-  }, [reportType]);
-
-  const getCsvDownloadUrl = () => {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    return `${API_URL}/reports/${reportType}/csv?token=${token}`; // Pass token to query if auth check allows it, or we trigger direct download using blob fetch in React
-  };
-
-  // Alternative secure download trigger using axios (handles Auth header)
-  const handleDownloadCsv = async () => {
-    try {
-      const response = await client.get(`/reports/${reportType}/csv`, {
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${reportType}_report.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (e) {
-      alert('CSV download failed.');
-    }
-  };
+  const exportReport = () => exportCsv('analytics.csv', [
+    { metric: 'Fuel Efficiency (km/l)', value: r.fuel_efficiency_kmpl },
+    { metric: 'Fleet Utilization (%)', value: r.fleet_utilization_pct },
+    { metric: 'Operational Cost (₹)', value: r.operational_cost },
+    { metric: 'Vehicle ROI (%)', value: r.vehicle_roi_pct },
+    ...r.costliest_vehicles.map((c) => ({ metric: `Cost — ${c.label}`, value: c.value })),
+  ]);
 
   return (
-    <div className="container">
-      {/* Report Selection Dropdown */}
-      <div className="card" style={{ marginBottom: '20px', padding: '15px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontWeight: 'bold' }}>Select Report:</label>
-            <select
-              className="form-control"
-              value={reportType}
-              onChange={(e) => setReportType(e.target.value as ReportType)}
-              style={{ width: '250px' }}
-            >
-              <option value="fuel-efficiency">Fuel Efficiency Report</option>
-              <option value="fleet-utilization">Fleet Utilization Analytics</option>
-              <option value="operational-cost">Operational Cost Overview</option>
-              <option value="vehicle-roi">Asset ROI Calculations</option>
-            </select>
-          </div>
+    <>
+      <PageHead title="Reports & Analytics" sub="Efficiency, utilization & profitability">
+        <button className="btn btn-ghost" onClick={exportReport}><IconDownload size={15} />CSV</button>
+        <button className="btn btn-ghost" onClick={() => window.print()}><IconDownload size={15} />PDF</button>
+      </PageHead>
 
-          <button onClick={handleDownloadCsv} className="btn btn-success">
-            ↓ Download CSV spreadsheet
-          </button>
-        </div>
+      <div className="kpi-row mb-20">
+        <Kpi label="Fuel Efficiency" value={`${r.fuel_efficiency_kmpl} km/l`} color="var(--blue)" icon={<IconFuel />} sub="Distance ÷ Fuel" tip="Total planned distance ÷ total fuel consumed." />
+        <Kpi label="Fleet Utilization" value={`${r.fleet_utilization_pct}%`} color="var(--green)" icon={<IconChart />} sub="On-trip / active" tip="On Trip vehicles ÷ active vehicles." />
+        <Kpi label="Operational Cost" value={`₹${fmtNum(r.operational_cost)}`} color="var(--amber)" icon={<IconRoute />} sub="Fuel + Maintenance" tip="Sum of fuel logs + maintenance costs." />
+        <Kpi label="Vehicle ROI" value={`${r.vehicle_roi_pct}%`} color="var(--accent)" icon={<IconChart />} sub="Return on assets" tip="(Revenue − (Maintenance + Fuel)) ÷ Acquisition Cost." />
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      <div className="alert alert-info" style={{ fontFamily: 'var(--font-mono)' }}>ROI = (Revenue − (Maintenance + Fuel)) / Acquisition Cost</div>
 
-      {loading ? (
-        <p>Calculating analytics...</p>
-      ) : data ? (
-        <div className="card">
-          {reportType === 'fuel-efficiency' && (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Vehicle Registration</th>
-                  <th>Total Distance</th>
-                  <th>Total Fuel Consumed</th>
-                  <th>Fuel Efficiency</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((r: any) => (
-                  <tr key={r.vehicle_id}>
-                    <td style={{ fontWeight: 'bold' }}>{r.registration_number}</td>
-                    <td>{r.total_distance_km.toLocaleString()} km</td>
-                    <td>{r.total_fuel_liters.toLocaleString()} liters</td>
-                    <td>
-                      <strong style={{ color: r.efficiency_km_per_liter ? 'green' : 'inherit' }}>
-                        {r.efficiency_km_per_liter ? `${r.efficiency_km_per_liter} km/L` : 'N/A (No fuel logs)'}
-                      </strong>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          {reportType === 'fleet-utilization' && (
-            <div style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', gap: '40px', justifyContent: 'center', padding: '20px 0' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '48px', fontWeight: 'bold' }}>{data.utilization_pct}%</div>
-                  <p className="text-muted">Current Fleet Utilization</p>
-                </div>
-                <div style={{ borderLeft: '1px solid #ddd', paddingLeft: '40px' }}>
-                  <p><strong>Total Active Vehicles:</strong> {data.total_active_vehicles}</p>
-                  <p><strong>Vehicles currently on Trip:</strong> {data.vehicles_on_trip}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {reportType === 'operational-cost' && (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Vehicle Registration</th>
-                  <th>Fuel Costs</th>
-                  <th>Maintenance Costs</th>
-                  <th>Expenses Costs</th>
-                  <th>Total Operational Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((r: any) => (
-                  <tr key={r.vehicle_id}>
-                    <td style={{ fontWeight: 'bold' }}>{r.registration_number}</td>
-                    <td>${r.fuel_cost.toLocaleString()}</td>
-                    <td>${r.maintenance_cost.toLocaleString()}</td>
-                    <td>${r.expense_cost.toLocaleString()}</td>
-                    <td style={{ fontWeight: 'bold', fontSize: '15px' }}>${r.total_cost.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          {reportType === 'vehicle-roi' && (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Vehicle Registration</th>
-                  <th>Total Revenue</th>
-                  <th>Total Operational Cost</th>
-                  <th>Acquisition Cost</th>
-                  <th>ROI (%)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((r: any) => (
-                  <tr key={r.vehicle_id}>
-                    <td style={{ fontWeight: 'bold' }}>{r.registration_number}</td>
-                    <td>${r.total_revenue.toLocaleString()}</td>
-                    <td>${r.total_cost.toLocaleString()}</td>
-                    <td>${r.acquisition_cost.toLocaleString()}</td>
-                    <td>
-                      <strong style={{ color: r.roi_pct && r.roi_pct > 0 ? 'green' : 'red' }}>
-                        {r.roi_pct !== null ? `${r.roi_pct}%` : 'N/A'}
-                      </strong>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      <div className="two-col">
+        <div className="card card-pad">
+          <div className="card-title mb-20">Monthly Revenue</div>
+          <BarChart data={r.monthly_revenue} />
         </div>
-      ) : null}
-    </div>
+        <div className="card card-pad">
+          <div className="card-title mb-20">Top Costliest Vehicles</div>
+          <StatBars data={costBars} />
+        </div>
+      </div>
+    </>
   );
 };
 export default ReportsPage;
