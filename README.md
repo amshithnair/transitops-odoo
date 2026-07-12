@@ -634,7 +634,7 @@ Here are some key visual highlights of the TransitOps platform:
 
 ### ANALYTICS
 <!-- Drag and drop your Analytics screenshot here or update the path below -->
-![ANALYTICS](screenshots/ANALYTICS.png)
+![ANALYTICS](screenshots/ANALYTICS.jpeg)
 
 ### SETTINGS
 <!-- Drag and drop your Settings screenshot here or update the path below -->
