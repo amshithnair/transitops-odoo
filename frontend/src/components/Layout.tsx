@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useData } from '../lib/useData';
 import { buildNotifications, type Notice } from '../lib/notifications';
-import { demoVehicles, demoDrivers, demoTrips, demoMaintenance } from '../lib/demo';
 import type { Vehicle, Driver, Trip, Maintenance } from '../lib/types';
 import { roleLabel, type Section } from '../lib/roles';
 import {
@@ -36,15 +35,15 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [notifOpen, setNotifOpen] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
-  const { data: vehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const { data: drivers } = useData<Driver[]>('/drivers', demoDrivers);
-  const { data: trips } = useData<Trip[]>('/trips', demoTrips);
-  const { data: maint } = useData<Maintenance[]>('/maintenance', demoMaintenance);
+  const { data: vehicles } = useData<Vehicle[]>('/vehicles', []);
+  const { data: drivers } = useData<Driver[]>('/drivers', []);
+  const { data: trips } = useData<Trip[]>('/trips', []);
+  const { data: maint } = useData<Maintenance[]>('/maintenance', []);
   const notices: Notice[] = buildNotifications(
-    Array.isArray(vehicles) ? vehicles : demoVehicles,
-    Array.isArray(drivers) ? drivers : demoDrivers,
-    Array.isArray(trips) ? trips : demoTrips,
-    Array.isArray(maint) ? maint : demoMaintenance,
+    Array.isArray(vehicles) ? vehicles : [],
+    Array.isArray(drivers) ? drivers : [],
+    Array.isArray(trips) ? trips : [],
+    Array.isArray(maint) ? maint : [],
   );
 
   const visible = NAV;

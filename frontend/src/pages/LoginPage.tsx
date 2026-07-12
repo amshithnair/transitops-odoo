@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth, type UserRole } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, type UserRole, type User } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -8,11 +10,11 @@ import { CustomSelect } from '../components/ui';
 import { IconSun, IconMoon, IconEye, IconEyeOff } from '../components/Icons';
 
 const DEMO: Record<UserRole, { email: string; pass: string; name: string }> = {
-  superadmin:        { email: 'admin@transitops.com',    pass: 'admin123',   name: 'Root Admin' },
-  fleet_manager:     { email: 'fleet@transitops.com',   pass: 'fleet123',   name: 'Maya Fleet' },
-  driver:            { email: 'dispatch@transitops.com', pass: 'driver123',  name: 'Raven K.' },
-  safety_officer:    { email: 'safety@transitops.com',   pass: 'safety123',  name: 'Sara Vale' },
-  financial_analyst: { email: 'finance@transitops.com',  pass: 'finance123', name: 'Dev Anand' },
+
+  fleet_manager:     { email: 'fleet@transitops.com',   pass: 'Fleet@123',   name: 'Alice Fleet' },
+  driver:            { email: 'driver@transitops.com', pass: 'Driver@123',  name: 'Bob Driver' },
+  safety_officer:    { email: 'safety@transitops.com',   pass: 'Safety@123',  name: 'Carol Safety' },
+  financial_analyst: { email: 'finance@transitops.com',  pass: 'Finance@123', name: 'Dave Finance' },
 };
 
 const MAX_ATTEMPTS = 5;
@@ -38,12 +40,7 @@ export const LoginPage: React.FC = () => {
     setPassword(DEMO[r].pass);
   };
 
-  const demoLogin = () => {
-    const now = new Date().toISOString();
-    const user: User = { id: `demo-${role}`, name: DEMO[role].name, email, role, is_active: true, created_at: now };
-    login('demo-token', user);
-    navigate('/');
-  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,8 +56,10 @@ export const LoginPage: React.FC = () => {
       navigate('/');
     } catch (err: unknown) {
       const e2 = err as { response?: { status?: number; data?: { detail?: string } } };
-      // No response = backend offline -> demo mode so the UI is fully explorable.
-      if (!e2.response) { demoLogin(); return; }
+      if (!e2.response) { 
+        setError('Backend is offline or unreachable.'); 
+        return; 
+      }
       localStorage.removeItem('token');
       const next = attempts + 1;
       setAttempts(next);
@@ -194,7 +193,7 @@ export const LoginPage: React.FC = () => {
 
           <div className="flex items-center" style={{ justifyContent: 'space-between', margin: '4px 0 18px' }}>
             <label className="checkbox"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />Remember me</label>
-            <span className="link">Forgot password?</span>
+            <Link to="/forgot-password" className="link">Forgot password?</Link>
           </div>
 
           <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={submitting || locked}>
@@ -206,10 +205,6 @@ export const LoginPage: React.FC = () => {
             {ALL_ROLES.map((r) => (
               <div className="ls-line" key={r}><b>{ROLE_LABELS[r]}</b> → {ROLE_SCOPE[r]}</div>
             ))}
-          </div>
-
-          <div className="demo-hint">
-            Demo: pick a role above (credentials auto-fill). If the backend is offline you'll enter a live demo of that role.
           </div>
         </form>
       </main>

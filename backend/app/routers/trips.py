@@ -30,7 +30,7 @@ RBAC:
 
 from datetime import datetime, date
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -103,10 +103,14 @@ def _validate_vehicle_driver_for_trip(
     "",
     response_model=list[TripResponse],
     summary="List trips",
-    description="Returns all trips. Drivers only see their own assigned trips.",
+    description="Returns all trips. Drivers only see their own assigned trips. "
+                "Supports optional filters by status, vehicle_id, driver_id.",
     responses={401: {"description": "Not authenticated"}},
 )
 def list_trips(
+    trip_status: TripStatus | None = Query(None, alias="status", description="Filter by trip status"),
+    vehicle_id: str | None = Query(None, description="Filter by vehicle ID"),
+    driver_id: str | None = Query(None, description="Filter by driver ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -119,6 +123,12 @@ def list_trips(
                 db.query(Driver.id).filter(Driver.name == current_user.name)
             ))
         )
+    if trip_status:
+        query = query.filter(Trip.status == trip_status)
+    if vehicle_id:
+        query = query.filter(Trip.vehicle_id == vehicle_id)
+    if driver_id:
+        query = query.filter(Trip.driver_id == driver_id)
     return query.order_by(Trip.created_at.desc()).all()
 
 
@@ -140,6 +150,12 @@ def get_trip(
     trip = db.query(Trip).filter(Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
+    # Drivers can only see their own trips
+    if current_user.role == UserRole.driver:
+        if trip.created_by != current_user.id:
+            driver_ids = [d.id for d in db.query(Driver.id).filter(Driver.name == current_user.name).all()]
+            if trip.driver_id not in driver_ids:
+                raise HTTPException(status_code=403, detail="Access denied — drivers can only view their own trips")
     return trip
 
 
@@ -185,9 +201,13 @@ def create_trip(
         cargo_weight_kg=payload.cargo_weight_kg,
         planned_distance_km=payload.planned_distance_km,
         revenue=payload.revenue,
-        status=TripStatus.Draft,
+        status=TripStatus.Dispatched if payload.dispatch else TripStatus.Draft,
         created_by=current_user.id,
     )
+    if payload.dispatch:
+        trip.dispatched_at = datetime.utcnow()
+        vehicle.status = VehicleStatus.On_Trip
+        driver.status = DriverStatus.On_Trip
     db.add(trip)
     db.commit()
     db.refresh(trip)
@@ -276,8 +296,9 @@ def complete_trip(
     driver = db.query(Driver).filter(Driver.id == trip.driver_id).first()
 
     # Update trip fields
-    trip.actual_distance_km = payload.actual_distance_km
-    trip.fuel_consumed_liters = payload.fuel_consumed_liters
+    trip.actual_distance_km = payload.final_odometer - vehicle.odometer_km if payload.final_odometer > vehicle.odometer_km else 0
+    trip.fuel_consumed_liters = payload.fuel_consumed
+    trip.revenue = payload.revenue
     trip.status = TripStatus.Completed
     trip.completed_at = datetime.utcnow()
 
@@ -286,16 +307,13 @@ def complete_trip(
     driver.status = DriverStatus.Available
 
     # Design decision #2: Update Vehicle.odometer_km.
-    if payload.final_odometer_km is not None:
-        vehicle.odometer_km = payload.final_odometer_km
-    else:
-        vehicle.odometer_km += payload.actual_distance_km
+    vehicle.odometer_km = payload.final_odometer
 
     # Design decision #1: Auto-create FuelLog entry (canonical fuel data source).
     fuel_log = FuelLog(
         vehicle_id=trip.vehicle_id,
         trip_id=trip.id,
-        liters=payload.fuel_consumed_liters,
+        liters=payload.fuel_consumed,
         cost=0.0,  # Cost is unknown at trip completion; can be updated later
         date=datetime.utcnow().date(),
         odometer_km=vehicle.odometer_km,

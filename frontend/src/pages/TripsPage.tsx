@@ -3,7 +3,6 @@ import { useAutoAnimate } from '@formkit/auto-animate/react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../lib/useData';
-import { demoTrips, demoVehicles, demoDrivers } from '../lib/demo';
 import type { Trip, Vehicle, Driver } from '../lib/types';
 import { canEdit, roleLabel } from '../lib/roles';
 import { expiryInfo } from '../lib/status';
@@ -18,12 +17,12 @@ export const TripsPage: React.FC = () => {
   const editable = canEdit(user?.role, 'trips');
   const [listRef] = useAutoAnimate<HTMLDivElement>();
 
-  const { data: trips, setData: setTrips } = useData<Trip[]>('/trips', demoTrips);
-  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const { data: drivers, setData: setDrivers } = useData<Driver[]>('/drivers', demoDrivers);
-  const tripRows = Array.isArray(trips) ? trips : demoTrips;
-  const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
-  const drvRows = Array.isArray(drivers) ? drivers : demoDrivers;
+  const { data: trips, setData: setTrips } = useData<Trip[]>('/trips', []);
+  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', []);
+  const { data: drivers, setData: setDrivers } = useData<Driver[]>('/drivers', []);
+  const tripRows = Array.isArray(trips) ? trips : [];
+  const vehRows = Array.isArray(vehicles) ? vehicles : [];
+  const drvRows = Array.isArray(drivers) ? drivers : [];
 
   // Dispatch-eligible pools (business rules): vehicles Available only; drivers Available + not expired
   const availVehicles = vehRows.filter((v) => v.status === 'Available');
@@ -61,7 +60,7 @@ export const TripsPage: React.FC = () => {
     setDrivers(drvRows.map((d) => (d.id === drv.id ? { ...d, status: 'On Trip' } : d)));
     reset();
     logActivity({ actor: user?.name || 'Unknown', role: roleLabel(user?.role), entity: 'Trip', entityLabel: code, action: 'Dispatched', detail: `${veh.registration_number} & ${drv.name} → On Trip` });
-    try { await client.post('/trips', { source, destination: dest, vehicle_id: veh.id, driver_id: drv.id, cargo_weight_kg: cargo, planned_distance_km: dist, dispatch: true }); } catch { /* offline demo */ }
+    try { await client.post('/trips', { source, destination: dest, vehicle_id: veh.id, driver_id: drv.id, cargo_weight_kg: cargo, planned_distance_km: dist, dispatch: true }); } catch { /* ignore */ }
   };
 
   const cancelTrip = async (t: Trip) => {
@@ -69,7 +68,7 @@ export const TripsPage: React.FC = () => {
     setVehicles(vehRows.map((v) => (v.registration_number === t.vehicle_label ? { ...v, status: 'Available' } : v)));
     setDrivers(drvRows.map((d) => (d.name === t.driver_label ? { ...d, status: 'Available' } : d)));
     logActivity({ actor: user?.name || 'Unknown', role: roleLabel(user?.role), entity: 'Trip', entityLabel: t.code || t.id, action: 'Cancelled', detail: `${t.vehicle_label} & ${t.driver_label} restored to Available` });
-    try { await client.post(`/trips/${t.id}/cancel`); } catch { /* offline demo */ }
+    try { await client.post(`/trips/${t.id}/cancel`); } catch { /* ignore */ }
   };
 
   const completeTrip = async () => {
@@ -81,7 +80,7 @@ export const TripsPage: React.FC = () => {
     setDrivers(drvRows.map((d) => (d.name === t.driver_label ? { ...d, status: 'Available' } : d)));
     setCompleting(null); setFinalOdo(0); setFuel(0); setRevenue(0);
     logActivity({ actor: user?.name || 'Unknown', role: roleLabel(user?.role), entity: 'Trip', entityLabel: t.code || t.id, action: 'Completed', detail: `Odometer ${finalOdo}km, fuel ${fuel}L, revenue ₹${revenue} logged; ${t.vehicle_label} & ${t.driver_label} → Available` });
-    try { await client.post(`/trips/${t.id}/complete`, { final_odometer: finalOdo, fuel_consumed: fuel, revenue }); } catch { /* offline demo */ }
+    try { await client.post(`/trips/${t.id}/complete`, { final_odometer: finalOdo, fuel_consumed: fuel, revenue }); } catch { /* ignore */ }
   };
 
   return (

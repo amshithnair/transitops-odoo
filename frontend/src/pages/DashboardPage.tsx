@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 import { useData } from '../lib/useData';
+import { DEFAULT_KPIS } from '../lib/types';
+import type { KPIs, Trip, Vehicle } from '../lib/types';
+import { PageHead, Kpi, StatBars, Badge } from '../components/ui';
 import { demoKpis, demoTrips, demoStatusBreakdown } from '../lib/demo';
 import type { KPIs, Trip } from '../lib/types';
 import { PageHead, Kpi, StatBars, Badge, CustomSelect } from '../components/ui';
@@ -16,6 +21,7 @@ const KPI_DEFS = (k: KPIs) => [
 ];
 
 export const DashboardPage: React.FC = () => {
+  const { user } = useAuth();
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
   const [region, setRegion] = useState('');
@@ -25,14 +31,32 @@ export const DashboardPage: React.FC = () => {
   if (status) params.vehicle_status = status;
   if (region) params.region = region;
 
-  const { data: kpis } = useData<KPIs>('/dashboard/kpis', demoKpis, params);
-  const { data: trips } = useData<Trip[]>('/trips', demoTrips);
+  const { data: kpis } = useData<KPIs>('/dashboard/kpis', DEFAULT_KPIS, params);
+  const { data: trips } = useData<Trip[]>('/trips', []);
+  const { data: vehicles } = useData<Vehicle[]>('/vehicles', []);
 
-  const recent = (Array.isArray(trips) ? trips : demoTrips).slice(0, 6);
+  const recent = (Array.isArray(trips) ? trips : []).slice(0, 6);
+  const role = user?.role || 'fleet_manager';
+
+  // Role-specific KPI filtering
+  const getKpis = (k: KPIs) => {
+    const all = KPI_DEFS(k);
+    if (role === 'driver') return all.filter(d => ['Active Trips', 'Pending Trips'].includes(d.label));
+    if (role === 'safety_officer') return all.filter(d => ['In Maintenance', 'Active Vehicles', 'Fleet Utilization'].includes(d.label));
+    if (role === 'financial_analyst') return all.filter(d => ['Fleet Utilization', 'Active Trips'].includes(d.label));
+    return all;
+  };
+
+  const roleTitle = {
+    fleet_manager: 'Fleet Manager Dashboard',
+    driver: 'Driver Dashboard',
+    safety_officer: 'Safety & Compliance Dashboard',
+    financial_analyst: 'Financial Dashboard'
+  }[role] || 'Dashboard';
 
   return (
     <>
-      <PageHead title="Dashboard" sub="Fleet operations at a glance" />
+      <PageHead title={roleTitle} sub={`Welcome back, ${user?.name || 'User'}`} />
 
       <div className="filters">
         <div className="filter-group">
@@ -53,39 +77,87 @@ export const DashboardPage: React.FC = () => {
             <CustomSelect value={region} onChange={setRegion} options={[{value: '', label: 'All'}, 'North', 'South', 'East', 'West']} placeholder="All" />
           </div>
         </div>
-      </div>
+      )}
 
       <div className="kpi-row" style={{ marginBottom: 18 }}>
-        {KPI_DEFS(kpis).map((d) => (
+        {getKpis(kpis).map((d) => (
           <Kpi key={d.label} label={d.label} value={d.value} sub={d.sub} color={d.color} icon={d.icon} tip={d.tip} />
         ))}
       </div>
 
       <div className="two-col">
-        <div className="card">
-          <div className="card-head"><h3>Recent Trips</h3></div>
-          <div className="table-wrap">
-            <table className="table">
-              <thead><tr><th>Trip</th><th>Vehicle</th><th>Driver</th><th>Status</th><th>ETA</th></tr></thead>
-              <tbody>
-                {recent.map((t) => (
-                  <tr key={t.id}>
-                    <td className="mono">{t.code || t.id}</td>
-                    <td>{t.vehicle_label || '—'}</td>
-                    <td>{t.driver_label || '—'}</td>
-                    <td><Badge status={t.status} /></td>
-                    <td className="text-muted">{t.eta || t.note || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {['fleet_manager', 'driver', 'financial_analyst'].includes(role) && (
+          <div className="card">
+            <div className="card-head"><h3>{role === 'driver' ? 'My Recent Trips' : 'Recent Trips'}</h3></div>
+            <div className="table-wrap">
+              <table className="table">
+                <thead><tr><th>Trip</th><th>Vehicle</th><th>Driver</th><th>Status</th><th>ETA</th></tr></thead>
+                <tbody>
+                  {recent.map((t) => (
+                    <tr key={t.id}>
+                      <td className="mono">{t.code || t.id}</td>
+                      <td>
+                        {t.vehicle_id ? (
+                          <Link to={`/vehicles/${t.vehicle_id}/passport`} className="link">
+                            {t.vehicle_label || '—'}
+                          </Link>
+                        ) : (
+                          t.vehicle_label || '—'
+                        )}
+                      </td>
+                      <td>{t.driver_label || '—'}</td>
+                      <td><Badge status={t.status} /></td>
+                      <td className="text-muted">{t.eta || t.note || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="card card-pad">
-          <div className="card-title mb-20">Vehicle Status</div>
-          <StatBars data={demoStatusBreakdown} />
-        </div>
+        {['fleet_manager', 'safety_officer'].includes(role) && (
+          <div className="card card-pad">
+            <div className="card-title mb-20">Vehicle Status Breakdown</div>
+            <StatBars data={[]} />
+          </div>
+        )}
+
+        {role === 'safety_officer' && (
+          <div className="card card-pad" style={{ gridColumn: 'span 2' }}>
+            <h3 style={{ marginBottom: 16 }}>Compliance Checklists & Fleet Passports</h3>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Vehicle</th>
+                    <th>Region</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vehicles.map((v) => (
+                    <tr key={v.id}>
+                      <td>
+                        <strong>{v.registration_number}</strong>
+                        <div className="text-muted" style={{ fontSize: 11 }}>{v.name_model}</div>
+                      </td>
+                      <td>{v.region || '—'}</td>
+                      <td><Badge status={v.status} /></td>
+                      <td>
+                        <Link to={`/vehicles/${v.id}/passport`} className="btn btn-ghost btn-sm">
+                          View Passport
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                  {vehicles.length === 0 && <tr><td colSpan={4} className="empty-row">No vehicles found.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

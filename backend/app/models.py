@@ -9,7 +9,7 @@ from datetime import datetime, date
 
 from sqlalchemy import (
     String, Float, Integer, DateTime, Date, Text, ForeignKey, Enum, Boolean,
-    UniqueConstraint,
+    UniqueConstraint, JSON,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
@@ -18,6 +18,7 @@ from app.database import Base
 
 
 # ──────────────────────────── Enums ────────────────────────────
+# Note: Keep the rest of the Enums as is. Lines 22+ continue below.
 
 class UserRole(str, enum.Enum):
     fleet_manager = "fleet_manager"
@@ -48,7 +49,7 @@ class TripStatus(str, enum.Enum):
 
 
 class MaintenanceStatus(str, enum.Enum):
-    Open = "Open"
+    Active = "Active"
     Closed = "Closed"
 
 
@@ -78,6 +79,16 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    # Password reset flow
+    reset_token: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    reset_token_expiry: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reset_requested_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # Multi-user creation by fleet_manager
+    created_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+
     # Relationships
     trips_created: Mapped[list["Trip"]] = relationship(back_populates="creator")
 
@@ -99,6 +110,13 @@ class Vehicle(Base):
     )
     region: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Documents & Compliance
+    documents: Mapped[list | None] = mapped_column(JSON, nullable=True, default=[])
+    insurance_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
+    rc_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
+    puc_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
+    fitness_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     # Relationships
     trips: Mapped[list["Trip"]] = relationship(back_populates="vehicle")
@@ -175,7 +193,7 @@ class MaintenanceLog(Base):
     cost: Mapped[float] = mapped_column(Float, default=0.0)
     odometer_at_service_km: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[MaintenanceStatus] = mapped_column(
-        Enum(MaintenanceStatus), default=MaintenanceStatus.Open
+        Enum(MaintenanceStatus), default=MaintenanceStatus.Active
     )
     opened_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

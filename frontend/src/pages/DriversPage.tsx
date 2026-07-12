@@ -3,7 +3,6 @@ import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData, filterBy } from '../lib/useData';
 import { useSort } from '../lib/useSort';
-import { demoDrivers } from '../lib/demo';
 import type { Driver } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { safetyColor, expiryInfo, fmtDate } from '../lib/status';
@@ -16,8 +15,8 @@ const blank = (): Driver => ({ id: '', name: '', license_number: '', license_cat
 export const DriversPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'drivers');
-  const { data, reload, setData } = useData<Driver[]>('/drivers', demoDrivers);
-  const rows = Array.isArray(data) ? data : demoDrivers;
+  const { data, reload } = useData<Driver[]>('/drivers', []);
+  const rows = Array.isArray(data) ? data : [];
 
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
@@ -42,15 +41,13 @@ export const DriversPage: React.FC = () => {
     } catch (e2: unknown) {
       const r = e2 as { response?: { data?: { detail?: string } } };
       if (r.response) { setErr(r.response.data?.detail || 'Save failed.'); return; }
-      setData(form.id ? rows.map((d) => (d.id === form.id ? form : d)) : [...rows, { ...form, id: `d${Date.now()}` }]);
       setForm(null);
     }
   };
 
   const setStatus = async (s: string) => {
     if (!selected) return;
-    setData(rows.map((d) => (d.id === selected ? { ...d, status: s } : d)));
-    try { await client.patch(`/drivers/${selected}`, { status: s }); } catch { /* offline demo: local only */ }
+    try { await client.patch(`/drivers/${selected}`, { status: s }); reload(); } catch {}
   };
 
   const remove = async (d: Driver) => {

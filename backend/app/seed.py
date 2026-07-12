@@ -15,25 +15,25 @@ SEED_USERS = [
     {
         "name": "Alice Fleet",
         "email": "fleet@transitops.com",
-        "password": "fleet123",
+        "password": "Fleet@123",
         "role": UserRole.fleet_manager,
     },
     {
         "name": "Bob Driver",
         "email": "driver@transitops.com",
-        "password": "driver123",
+        "password": "Driver@123",
         "role": UserRole.driver,
     },
     {
         "name": "Carol Safety",
         "email": "safety@transitops.com",
-        "password": "safety123",
+        "password": "Safety@123",
         "role": UserRole.safety_officer,
     },
     {
         "name": "Dave Finance",
         "email": "finance@transitops.com",
-        "password": "finance123",
+        "password": "Finance@123",
         "role": UserRole.financial_analyst,
     },
 ]
@@ -48,6 +48,14 @@ SEED_VEHICLES = [
         "acquisition_cost": 45000.0,
         "status": VehicleStatus.Available,
         "region": "North",
+        "insurance_expiry": date(2027, 6, 1),
+        "rc_expiry": date(2035, 1, 1),
+        "puc_expiry": date(2026, 12, 1),
+        "fitness_expiry": date(2028, 6, 1),
+        "documents": [
+            {"id": "doc_ins_1", "label": "Insurance", "filename": "insurance_van05.pdf", "dataUrl": "data:application/pdf;base64,JVBER...", "uploaded_at": "2026-07-01T10:00:00Z"},
+            {"id": "doc_rc_1", "label": "RC", "filename": "rc_van05.pdf", "dataUrl": "data:application/pdf;base64,JVBER...", "uploaded_at": "2026-07-01T10:00:00Z"}
+        ]
     },
     {
         "registration_number": "TRK-12",
@@ -58,6 +66,13 @@ SEED_VEHICLES = [
         "acquisition_cost": 120000.0,
         "status": VehicleStatus.Available,
         "region": "South",
+        "insurance_expiry": date(2026, 8, 15),
+        "rc_expiry": date(2030, 4, 1),
+        "puc_expiry": date(2026, 7, 30), # expired soon
+        "fitness_expiry": date(2027, 2, 28),
+        "documents": [
+            {"id": "doc_ins_2", "label": "Insurance", "filename": "insurance_trk12.pdf", "dataUrl": "data:application/pdf;base64,JVBER...", "uploaded_at": "2026-07-01T10:00:00Z"}
+        ]
     },
     {
         "registration_number": "VAN-03",
@@ -68,6 +83,11 @@ SEED_VEHICLES = [
         "acquisition_cost": 38000.0,
         "status": VehicleStatus.Available,
         "region": "East",
+        "insurance_expiry": date(2025, 12, 31), # already expired
+        "rc_expiry": date(2029, 10, 1),
+        "puc_expiry": date(2025, 10, 1), # already expired
+        "fitness_expiry": date(2026, 12, 31),
+        "documents": []
     },
 ]
 

@@ -3,7 +3,6 @@ import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../lib/useData';
 import { useSort } from '../lib/useSort';
-import { demoMaintenance, demoVehicles } from '../lib/demo';
 import type { Maintenance, Vehicle } from '../lib/types';
 import { canEdit, roleLabel } from '../lib/roles';
 import { fmtNum, fmtDate } from '../lib/status';
@@ -14,10 +13,10 @@ import { IconAlert, IconCheck } from '../components/Icons';
 export const MaintenancePage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'fleet');
-  const { data: logs, setData: setLogs } = useData<Maintenance[]>('/maintenance', demoMaintenance);
-  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const rows = Array.isArray(logs) ? logs : demoMaintenance;
-  const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
+  const { data: logs, setData: setLogs } = useData<Maintenance[]>('/maintenance', []);
+  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', []);
+  const rows = Array.isArray(logs) ? logs : [];
+  const vehRows = Array.isArray(vehicles) ? vehicles : [];
   const { sorted, toggle, arrow } = useSort<Maintenance>(rows);
 
   const [vehicle, setVehicle] = useState('');
@@ -35,7 +34,7 @@ export const MaintenancePage: React.FC = () => {
     if (status === 'Active') setVehicles(vehRows.map((v) => (v.registration_number === vehicle ? { ...v, status: 'In Shop' } : v)));
     logActivity({ actor: user?.name || 'Unknown', role: roleLabel(user?.role), entity: 'Maintenance', entityLabel: vehicle, action: `${service} logged (${status})`, detail: status === 'Active' ? 'Vehicle → In Shop' : undefined });
     setVehicle(''); setService(''); setCost(0);
-    try { await client.post('/maintenance', { vehicle_label: vehicle, service_type: service, cost, date, status }); } catch { /* offline demo */ }
+    try { await client.post('/maintenance', { vehicle_label: vehicle, service_type: service, cost, date, status }); } catch { /* ignore */ }
   };
 
   const toggleClose = async (m: Maintenance) => {
@@ -47,7 +46,7 @@ export const MaintenancePage: React.FC = () => {
       if (v.registration_number !== m.vehicle_label || v.status === 'Retired') return v;
       return { ...v, status: nextStatus === 'Closed' ? 'Available' : 'In Shop' };
     }));
-    try { await client.patch(`/maintenance/${m.id}`, { status: nextStatus }); } catch { /* offline demo */ }
+    try { await client.patch(`/maintenance/${m.id}`, { status: nextStatus }); } catch { /* ignore */ }
   };
 
   return (
