@@ -1,0 +1,3531 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TransitOps API",
+    "description": "Fleet operations platform \u2014 manage vehicles, drivers, trips, maintenance, fuel, expenses, and reports.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register a new user",
+        "description": "Create a new user account. No authentication required.",
+        "operationId": "register_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegister"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already registered"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login and obtain JWT",
+        "description": "Authenticate with email and password. Returns a JWT access token.",
+        "operationId": "login_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get current user profile",
+        "description": "Returns the profile of the currently authenticated user.",
+        "operationId": "get_me_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated or invalid token"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/vehicles": {
+      "get": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "List all vehicles",
+        "description": "Returns all vehicles. Supports optional filters by type, status, and region.",
+        "operationId": "list_vehicles_vehicles_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by vehicle type",
+              "title": "Type"
+            },
+            "description": "Filter by vehicle type"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by vehicle status",
+              "title": "Status"
+            },
+            "description": "Filter by vehicle status"
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by region",
+              "title": "Region"
+            },
+            "description": "Filter by region"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VehicleResponse"
+                  },
+                  "title": "Response List Vehicles Vehicles Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Create a new vehicle",
+        "description": "Register a new vehicle. Requires fleet_manager role. Rule 1: registration_number must be unique.",
+        "operationId": "create_vehicle_vehicles_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "409": {
+            "description": "Registration number already exists (Rule 1)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vehicles/{vehicle_id}": {
+      "get": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Get vehicle by ID",
+        "description": "Returns a single vehicle by its UUID.",
+        "operationId": "get_vehicle_vehicles__vehicle_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Vehicle Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Vehicle not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Update a vehicle",
+        "description": "Update vehicle fields. Requires fleet_manager role. Rule 1: registration_number uniqueness is re-checked.",
+        "operationId": "update_vehicle_vehicles__vehicle_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Vehicle Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Vehicle not found"
+          },
+          "409": {
+            "description": "Registration number already exists (Rule 1)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Delete a vehicle",
+        "description": "Delete a vehicle by ID. Requires fleet_manager role.",
+        "operationId": "delete_vehicle_vehicles__vehicle_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Vehicle Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Vehicle not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drivers": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "List all drivers",
+        "description": "Returns all drivers.",
+        "operationId": "list_drivers_drivers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DriverResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Drivers Drivers Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Create a new driver",
+        "description": "Register a new driver. Requires fleet_manager role. License number must be unique.",
+        "operationId": "create_driver_drivers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriverCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "409": {
+            "description": "License number already exists"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/drivers/{driver_id}": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Get driver by ID",
+        "description": "Returns a single driver by UUID.",
+        "operationId": "get_driver_drivers__driver_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Driver Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Driver not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Update a driver",
+        "description": "Update driver fields. fleet_manager: all fields. safety_officer: compliance fields only (license_*, safety_score, status).",
+        "operationId": "update_driver_drivers__driver_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Driver Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriverUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Driver not found"
+          },
+          "409": {
+            "description": "License number already exists"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Delete a driver",
+        "description": "Delete a driver by ID. Requires fleet_manager role.",
+        "operationId": "delete_driver_drivers__driver_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "driver_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Driver Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Driver not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trips": {
+      "get": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "List trips",
+        "description": "Returns all trips. Drivers only see their own assigned trips.",
+        "operationId": "list_trips_trips_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TripResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Trips Trips Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Create a new trip (Draft)",
+        "description": "Create a trip in Draft status. Validates Rules 2-5 at creation. Requires fleet_manager or driver role.",
+        "operationId": "create_trip_trips_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TripCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Business rule violation (Rules 2-5)"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Vehicle or driver not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/trips/{trip_id}": {
+      "get": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Get trip by ID",
+        "description": "Returns a single trip.",
+        "operationId": "get_trip_trips__trip_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "trip_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trip Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Trip not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trips/{trip_id}/dispatch": {
+      "post": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Dispatch a trip",
+        "description": "Transition Draft \u2192 Dispatched. Re-validates Rules 2, 3, 4 (race-condition guard). Rule 6: sets vehicle + driver to On Trip.",
+        "operationId": "dispatch_trip_trips__trip_id__dispatch_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "trip_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trip Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Business rule violation (Rules 2-4)"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Trip not found"
+          },
+          "409": {
+            "description": "Trip not in Draft status"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trips/{trip_id}/complete": {
+      "post": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Complete a trip",
+        "description": "Transition Dispatched \u2192 Completed. Rule 7: restores vehicle + driver to Available. Design decision #1: auto-creates FuelLog. Design decision #2: updates Vehicle.odometer_km.",
+        "operationId": "complete_trip_trips__trip_id__complete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "trip_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trip Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TripComplete"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Trip not found"
+          },
+          "409": {
+            "description": "Trip not in Dispatched status"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trips/{trip_id}/cancel": {
+      "post": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Cancel a trip",
+        "description": "Cancel a Draft or Dispatched trip. Design decision #3: Draft cancellation has no side effects. Dispatched cancellation restores vehicle + driver to Available (Rule 8). Completed/Cancelled trips cannot be cancelled (409).",
+        "operationId": "cancel_trip_trips__trip_id__cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "trip_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trip Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Trip not found"
+          },
+          "409": {
+            "description": "Trip cannot be cancelled from current status"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/maintenance": {
+      "get": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "List maintenance logs",
+        "description": "Returns all maintenance logs.",
+        "operationId": "list_maintenance_maintenance_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MaintenanceResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Maintenance Maintenance Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Create maintenance record",
+        "description": "Create a new maintenance record for a vehicle. Rule 9: automatically sets the vehicle status to 'In Shop'.",
+        "operationId": "create_maintenance_maintenance_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaintenanceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Vehicle not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/maintenance/{log_id}": {
+      "get": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Get maintenance log by ID",
+        "operationId": "get_maintenance_maintenance__log_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "log_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Log Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Maintenance log not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/maintenance/{log_id}/close": {
+      "post": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "Close a maintenance record",
+        "description": "Close an open maintenance record. Rule 10: restores vehicle to 'Available' unless 'Retired'.",
+        "operationId": "close_maintenance_maintenance__log_id__close_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "log_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Log Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/MaintenanceClose"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Maintenance log not found"
+          },
+          "409": {
+            "description": "Maintenance log already closed"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fuel-expense/fuel": {
+      "get": {
+        "tags": [
+          "Fuel & Expense"
+        ],
+        "summary": "List fuel logs",
+        "description": "Returns all fuel logs. Optional filter by vehicle_id.",
+        "operationId": "list_fuel_logs_fuel_expense_fuel_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vehicle Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FuelLogResponse"
+                  },
+                  "title": "Response List Fuel Logs Fuel Expense Fuel Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Fuel & Expense"
+        ],
+        "summary": "Create a fuel log",
+        "description": "Record a fuel log entry for a vehicle.",
+        "operationId": "create_fuel_log_fuel_expense_fuel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FuelLogCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FuelLogResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Vehicle not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fuel-expense/expenses": {
+      "get": {
+        "tags": [
+          "Fuel & Expense"
+        ],
+        "summary": "List expenses",
+        "description": "Returns all expenses. Optional filter by vehicle_id.",
+        "operationId": "list_expenses_fuel_expense_expenses_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vehicle Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExpenseResponse"
+                  },
+                  "title": "Response List Expenses Fuel Expense Expenses Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Fuel & Expense"
+        ],
+        "summary": "Create an expense",
+        "description": "Record an expense entry for a vehicle.",
+        "operationId": "create_expense_fuel_expense_expenses_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          },
+          "404": {
+            "description": "Vehicle not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fuel-expense/operational-cost/{vehicle_id}": {
+      "get": {
+        "tags": [
+          "Fuel & Expense"
+        ],
+        "summary": "Get total operational cost for a vehicle",
+        "description": "Computes total operational cost = Fuel + Maintenance + Expenses for a vehicle.",
+        "operationId": "get_operational_cost_fuel_expense_operational_cost__vehicle_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Vehicle Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Vehicle not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/kpis": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get dashboard KPIs",
+        "description": "Returns fleet KPIs. Supports optional filters by vehicle type, status, and region (applied to vehicle-related KPIs).",
+        "operationId": "get_kpis_dashboard_kpis_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by vehicle type",
+              "title": "Vehicle Type"
+            },
+            "description": "Filter by vehicle type"
+          },
+          {
+            "name": "vehicle_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by vehicle status",
+              "title": "Vehicle Status"
+            },
+            "description": "Filter by vehicle status"
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by region",
+              "title": "Region"
+            },
+            "description": "Filter by region"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardKPIs"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports/fuel-efficiency": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Fuel efficiency report",
+        "description": "Distance / Fuel per vehicle. Fuel data sourced from FuelLog (canonical).",
+        "operationId": "fuel_efficiency_report_reports_fuel_efficiency_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FuelEfficiencyReport"
+                  },
+                  "type": "array",
+                  "title": "Response Fuel Efficiency Report Reports Fuel Efficiency Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/reports/fuel-efficiency/csv": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Fuel efficiency report (CSV)",
+        "operationId": "fuel_efficiency_csv_reports_fuel_efficiency_csv_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/reports/fleet-utilization": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Fleet utilization report",
+        "description": "Vehicles On Trip / total active vehicles.",
+        "operationId": "fleet_utilization_report_reports_fleet_utilization_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetUtilizationReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/reports/fleet-utilization/csv": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Fleet utilization report (CSV)",
+        "operationId": "fleet_utilization_csv_reports_fleet_utilization_csv_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/reports/operational-cost": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Operational cost report",
+        "description": "Fuel + Maintenance + Expenses per vehicle.",
+        "operationId": "operational_cost_report_reports_operational_cost_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OperationalCostReport"
+                  },
+                  "type": "array",
+                  "title": "Response Operational Cost Report Reports Operational Cost Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/reports/operational-cost/csv": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Operational cost report (CSV)",
+        "operationId": "operational_cost_csv_reports_operational_cost_csv_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/reports/vehicle-roi": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Vehicle ROI report",
+        "description": "(Revenue \u2212 (Maintenance + Fuel)) / Acquisition Cost per vehicle.",
+        "operationId": "vehicle_roi_report_reports_vehicle_roi_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VehicleROIReport"
+                  },
+                  "type": "array",
+                  "title": "Response Vehicle Roi Report Reports Vehicle Roi Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/reports/vehicle-roi/csv": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Vehicle ROI report (CSV)",
+        "operationId": "vehicle_roi_csv_reports_vehicle_roi_csv_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Insufficient role"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "Health check endpoint.",
+        "operationId": "health_check__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DashboardKPIs": {
+        "properties": {
+          "active_vehicles": {
+            "type": "integer",
+            "title": "Active Vehicles",
+            "examples": [
+              12
+            ]
+          },
+          "available_vehicles": {
+            "type": "integer",
+            "title": "Available Vehicles",
+            "examples": [
+              8
+            ]
+          },
+          "vehicles_in_maintenance": {
+            "type": "integer",
+            "title": "Vehicles In Maintenance",
+            "examples": [
+              2
+            ]
+          },
+          "active_trips": {
+            "type": "integer",
+            "title": "Active Trips",
+            "examples": [
+              4
+            ]
+          },
+          "pending_trips": {
+            "type": "integer",
+            "title": "Pending Trips",
+            "examples": [
+              3
+            ]
+          },
+          "drivers_on_duty": {
+            "type": "integer",
+            "title": "Drivers On Duty",
+            "examples": [
+              4
+            ]
+          },
+          "fleet_utilization_pct": {
+            "type": "number",
+            "title": "Fleet Utilization Pct",
+            "examples": [
+              33.3
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "active_vehicles",
+          "available_vehicles",
+          "vehicles_in_maintenance",
+          "active_trips",
+          "pending_trips",
+          "drivers_on_duty",
+          "fleet_utilization_pct"
+        ],
+        "title": "DashboardKPIs"
+      },
+      "DriverCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name",
+            "examples": [
+              "Alex Johnson"
+            ]
+          },
+          "license_number": {
+            "type": "string",
+            "minLength": 1,
+            "title": "License Number",
+            "examples": [
+              "DL-2024-0042"
+            ]
+          },
+          "license_category": {
+            "type": "string",
+            "title": "License Category",
+            "examples": [
+              "C"
+            ]
+          },
+          "license_expiry_date": {
+            "type": "string",
+            "format": "date",
+            "title": "License Expiry Date",
+            "examples": [
+              "2026-12-31"
+            ]
+          },
+          "contact_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Number",
+            "examples": [
+              "+1-555-0142"
+            ]
+          },
+          "safety_score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Safety Score",
+            "default": 100.0,
+            "examples": [
+              95.0
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/DriverStatus",
+            "default": "Available",
+            "examples": [
+              "Available"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "license_number",
+          "license_category",
+          "license_expiry_date"
+        ],
+        "title": "DriverCreate"
+      },
+      "DriverResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "license_number": {
+            "type": "string",
+            "title": "License Number"
+          },
+          "license_category": {
+            "type": "string",
+            "title": "License Category"
+          },
+          "license_expiry_date": {
+            "type": "string",
+            "format": "date",
+            "title": "License Expiry Date"
+          },
+          "contact_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Number"
+          },
+          "safety_score": {
+            "type": "number",
+            "title": "Safety Score"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DriverStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "license_number",
+          "license_category",
+          "license_expiry_date",
+          "contact_number",
+          "safety_score",
+          "status",
+          "created_at"
+        ],
+        "title": "DriverResponse"
+      },
+      "DriverStatus": {
+        "type": "string",
+        "enum": [
+          "Available",
+          "On Trip",
+          "Off Duty",
+          "Suspended"
+        ],
+        "title": "DriverStatus"
+      },
+      "DriverUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "examples": [
+              "Alex Johnson"
+            ]
+          },
+          "license_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License Number",
+            "examples": [
+              "DL-2024-0042"
+            ]
+          },
+          "license_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License Category",
+            "examples": [
+              "C"
+            ]
+          },
+          "license_expiry_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License Expiry Date",
+            "examples": [
+              "2026-12-31"
+            ]
+          },
+          "contact_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Number",
+            "examples": [
+              "+1-555-0142"
+            ]
+          },
+          "safety_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safety Score",
+            "examples": [
+              95.0
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DriverStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "Available"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "DriverUpdate"
+      },
+      "ExpenseCategory": {
+        "type": "string",
+        "enum": [
+          "Toll",
+          "Fine",
+          "Parking",
+          "Other"
+        ],
+        "title": "ExpenseCategory"
+      },
+      "ExpenseCreate": {
+        "properties": {
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id",
+            "examples": [
+              "uuid-of-vehicle"
+            ]
+          },
+          "category": {
+            "$ref": "#/components/schemas/ExpenseCategory",
+            "examples": [
+              "Toll"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount",
+            "examples": [
+              25.0
+            ]
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date",
+            "examples": [
+              "2026-01-15"
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes",
+            "examples": [
+              "Highway toll \u2014 Route 66"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "vehicle_id",
+          "category",
+          "amount",
+          "date"
+        ],
+        "title": "ExpenseCreate"
+      },
+      "ExpenseResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ExpenseCategory"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "vehicle_id",
+          "category",
+          "amount",
+          "date",
+          "notes"
+        ],
+        "title": "ExpenseResponse"
+      },
+      "FleetUtilizationReport": {
+        "properties": {
+          "total_active_vehicles": {
+            "type": "integer",
+            "title": "Total Active Vehicles"
+          },
+          "vehicles_on_trip": {
+            "type": "integer",
+            "title": "Vehicles On Trip"
+          },
+          "utilization_pct": {
+            "type": "number",
+            "title": "Utilization Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_active_vehicles",
+          "vehicles_on_trip",
+          "utilization_pct"
+        ],
+        "title": "FleetUtilizationReport"
+      },
+      "FuelEfficiencyReport": {
+        "properties": {
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id"
+          },
+          "registration_number": {
+            "type": "string",
+            "title": "Registration Number"
+          },
+          "total_distance_km": {
+            "type": "number",
+            "title": "Total Distance Km"
+          },
+          "total_fuel_liters": {
+            "type": "number",
+            "title": "Total Fuel Liters"
+          },
+          "efficiency_km_per_liter": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Efficiency Km Per Liter"
+          }
+        },
+        "type": "object",
+        "required": [
+          "vehicle_id",
+          "registration_number",
+          "total_distance_km",
+          "total_fuel_liters",
+          "efficiency_km_per_liter"
+        ],
+        "title": "FuelEfficiencyReport"
+      },
+      "FuelLogCreate": {
+        "properties": {
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id",
+            "examples": [
+              "uuid-of-vehicle"
+            ]
+          },
+          "trip_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trip Id",
+            "examples": [
+              "uuid-of-trip"
+            ]
+          },
+          "liters": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Liters",
+            "examples": [
+              45.0
+            ]
+          },
+          "cost": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Cost",
+            "examples": [
+              67.5
+            ]
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date",
+            "examples": [
+              "2026-01-15"
+            ]
+          },
+          "odometer_km": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Odometer Km",
+            "examples": [
+              15350.0
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "vehicle_id",
+          "liters",
+          "cost",
+          "date"
+        ],
+        "title": "FuelLogCreate"
+      },
+      "FuelLogResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id"
+          },
+          "trip_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trip Id"
+          },
+          "liters": {
+            "type": "number",
+            "title": "Liters"
+          },
+          "cost": {
+            "type": "number",
+            "title": "Cost"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "odometer_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Odometer Km"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "vehicle_id",
+          "trip_id",
+          "liters",
+          "cost",
+          "date",
+          "odometer_km"
+        ],
+        "title": "FuelLogResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MaintenanceClose": {
+        "properties": {
+          "cost": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost",
+            "examples": [
+              275.0
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "examples": [
+              "Completed oil change and filter replacement"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "MaintenanceClose"
+      },
+      "MaintenanceCreate": {
+        "properties": {
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id",
+            "examples": [
+              "uuid-of-vehicle"
+            ]
+          },
+          "service_type": {
+            "type": "string",
+            "title": "Service Type",
+            "examples": [
+              "Oil Change"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "examples": [
+              "Routine 10k km oil change"
+            ]
+          },
+          "cost": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Cost",
+            "default": 0.0,
+            "examples": [
+              250.0
+            ]
+          },
+          "odometer_at_service_km": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Odometer At Service Km",
+            "examples": [
+              15000.0
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "vehicle_id",
+          "service_type"
+        ],
+        "title": "MaintenanceCreate"
+      },
+      "MaintenanceResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id"
+          },
+          "service_type": {
+            "type": "string",
+            "title": "Service Type"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "cost": {
+            "type": "number",
+            "title": "Cost"
+          },
+          "odometer_at_service_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Odometer At Service Km"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MaintenanceStatus"
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Opened At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "vehicle_id",
+          "service_type",
+          "description",
+          "cost",
+          "odometer_at_service_km",
+          "status",
+          "opened_at",
+          "closed_at"
+        ],
+        "title": "MaintenanceResponse"
+      },
+      "MaintenanceStatus": {
+        "type": "string",
+        "enum": [
+          "Open",
+          "Closed"
+        ],
+        "title": "MaintenanceStatus"
+      },
+      "OperationalCostReport": {
+        "properties": {
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id"
+          },
+          "registration_number": {
+            "type": "string",
+            "title": "Registration Number"
+          },
+          "fuel_cost": {
+            "type": "number",
+            "title": "Fuel Cost"
+          },
+          "maintenance_cost": {
+            "type": "number",
+            "title": "Maintenance Cost"
+          },
+          "expense_cost": {
+            "type": "number",
+            "title": "Expense Cost"
+          },
+          "total_cost": {
+            "type": "number",
+            "title": "Total Cost"
+          }
+        },
+        "type": "object",
+        "required": [
+          "vehicle_id",
+          "registration_number",
+          "fuel_cost",
+          "maintenance_cost",
+          "expense_cost",
+          "total_cost"
+        ],
+        "title": "OperationalCostReport"
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "Token"
+      },
+      "TripComplete": {
+        "properties": {
+          "actual_distance_km": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Actual Distance Km",
+            "examples": [
+              345.0
+            ]
+          },
+          "fuel_consumed_liters": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Fuel Consumed Liters",
+            "examples": [
+              42.5
+            ]
+          },
+          "final_odometer_km": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Odometer Km",
+            "description": "If provided, sets vehicle odometer to this value. Otherwise, odometer is incremented by actual_distance_km.",
+            "examples": [
+              15345.0
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "actual_distance_km",
+          "fuel_consumed_liters"
+        ],
+        "title": "TripComplete",
+        "description": "Payload for completing a trip \u2014 design decisions #1 and #2."
+      },
+      "TripCreate": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "examples": [
+              "Warehouse A"
+            ]
+          },
+          "destination": {
+            "type": "string",
+            "title": "Destination",
+            "examples": [
+              "Distribution Center B"
+            ]
+          },
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id",
+            "examples": [
+              "uuid-of-vehicle"
+            ]
+          },
+          "driver_id": {
+            "type": "string",
+            "title": "Driver Id",
+            "examples": [
+              "uuid-of-driver"
+            ]
+          },
+          "cargo_weight_kg": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Cargo Weight Kg",
+            "examples": [
+              1800.0
+            ]
+          },
+          "planned_distance_km": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Planned Distance Km",
+            "examples": [
+              350.0
+            ]
+          },
+          "revenue": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Revenue",
+            "default": 0.0,
+            "examples": [
+              2500.0
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "destination",
+          "vehicle_id",
+          "driver_id",
+          "cargo_weight_kg",
+          "planned_distance_km"
+        ],
+        "title": "TripCreate"
+      },
+      "TripResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "destination": {
+            "type": "string",
+            "title": "Destination"
+          },
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id"
+          },
+          "driver_id": {
+            "type": "string",
+            "title": "Driver Id"
+          },
+          "cargo_weight_kg": {
+            "type": "number",
+            "title": "Cargo Weight Kg"
+          },
+          "planned_distance_km": {
+            "type": "number",
+            "title": "Planned Distance Km"
+          },
+          "actual_distance_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Distance Km"
+          },
+          "fuel_consumed_liters": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fuel Consumed Liters"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TripStatus"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "dispatched_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatched At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "destination",
+          "vehicle_id",
+          "driver_id",
+          "cargo_weight_kg",
+          "planned_distance_km",
+          "actual_distance_km",
+          "fuel_consumed_liters",
+          "revenue",
+          "status",
+          "created_by",
+          "dispatched_at",
+          "completed_at",
+          "cancelled_at",
+          "created_at"
+        ],
+        "title": "TripResponse"
+      },
+      "TripStatus": {
+        "type": "string",
+        "enum": [
+          "Draft",
+          "Dispatched",
+          "Completed",
+          "Cancelled"
+        ],
+        "title": "TripStatus"
+      },
+      "UserLogin": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "examples": [
+              "alice@transitops.com"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "examples": [
+              "SecureP@ss1"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "UserLogin"
+      },
+      "UserRegister": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name",
+            "examples": [
+              "Alice Fleet"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "examples": [
+              "alice@transitops.com"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "title": "Password",
+            "examples": [
+              "SecureP@ss1"
+            ]
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "examples": [
+              "fleet_manager"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "password",
+          "role"
+        ],
+        "title": "UserRegister"
+      },
+      "UserResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "is_active",
+          "created_at"
+        ],
+        "title": "UserResponse"
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "fleet_manager",
+          "driver",
+          "safety_officer",
+          "financial_analyst"
+        ],
+        "title": "UserRole"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VehicleCreate": {
+        "properties": {
+          "registration_number": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Registration Number",
+            "examples": [
+              "VAN-05"
+            ]
+          },
+          "name_model": {
+            "type": "string",
+            "title": "Name Model",
+            "examples": [
+              "Ford Transit 2024"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "examples": [
+              "Van"
+            ]
+          },
+          "max_load_capacity_kg": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Max Load Capacity Kg",
+            "examples": [
+              2500.0
+            ]
+          },
+          "odometer_km": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Odometer Km",
+            "default": 0.0,
+            "examples": [
+              15000.0
+            ]
+          },
+          "acquisition_cost": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Acquisition Cost",
+            "default": 0.0,
+            "examples": [
+              45000.0
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/VehicleStatus",
+            "default": "Available",
+            "examples": [
+              "Available"
+            ]
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region",
+            "examples": [
+              "North"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "registration_number",
+          "name_model",
+          "type",
+          "max_load_capacity_kg"
+        ],
+        "title": "VehicleCreate"
+      },
+      "VehicleROIReport": {
+        "properties": {
+          "vehicle_id": {
+            "type": "string",
+            "title": "Vehicle Id"
+          },
+          "registration_number": {
+            "type": "string",
+            "title": "Registration Number"
+          },
+          "total_revenue": {
+            "type": "number",
+            "title": "Total Revenue"
+          },
+          "total_cost": {
+            "type": "number",
+            "title": "Total Cost"
+          },
+          "acquisition_cost": {
+            "type": "number",
+            "title": "Acquisition Cost"
+          },
+          "roi_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roi Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "vehicle_id",
+          "registration_number",
+          "total_revenue",
+          "total_cost",
+          "acquisition_cost",
+          "roi_pct"
+        ],
+        "title": "VehicleROIReport"
+      },
+      "VehicleResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "registration_number": {
+            "type": "string",
+            "title": "Registration Number"
+          },
+          "name_model": {
+            "type": "string",
+            "title": "Name Model"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "max_load_capacity_kg": {
+            "type": "number",
+            "title": "Max Load Capacity Kg"
+          },
+          "odometer_km": {
+            "type": "number",
+            "title": "Odometer Km"
+          },
+          "acquisition_cost": {
+            "type": "number",
+            "title": "Acquisition Cost"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VehicleStatus"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "registration_number",
+          "name_model",
+          "type",
+          "max_load_capacity_kg",
+          "odometer_km",
+          "acquisition_cost",
+          "status",
+          "region",
+          "created_at"
+        ],
+        "title": "VehicleResponse"
+      },
+      "VehicleStatus": {
+        "type": "string",
+        "enum": [
+          "Available",
+          "On Trip",
+          "In Shop",
+          "Retired"
+        ],
+        "title": "VehicleStatus"
+      },
+      "VehicleUpdate": {
+        "properties": {
+          "registration_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registration Number",
+            "examples": [
+              "VAN-05"
+            ]
+          },
+          "name_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Model",
+            "examples": [
+              "Ford Transit 2024"
+            ]
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "examples": [
+              "Van"
+            ]
+          },
+          "max_load_capacity_kg": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Load Capacity Kg",
+            "examples": [
+              2500.0
+            ]
+          },
+          "odometer_km": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Odometer Km",
+            "examples": [
+              15000.0
+            ]
+          },
+          "acquisition_cost": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acquisition Cost",
+            "examples": [
+              45000.0
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VehicleStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "Available"
+            ]
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region",
+            "examples": [
+              "North"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "VehicleUpdate"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
