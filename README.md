@@ -7,7 +7,7 @@
 
   <!-- Hero Image -->
   <!-- Drag and drop your Login screenshot here or update the path below -->
-  <img src="https://drive.google.com/file/d/1xFPYK3ENI85OK2VwR4XHDZFWNkL_SIKA/view?usp=sharing" alt="TransitOps Login" width="800" />
+  <img src="https://drive.google.com/uc?export=view&id=1xFPYK3ENI85OK2VwR4XHDZFWNkL_SIKA" alt="TransitOps Login" width="800" />
 
   <br /><br />
 
