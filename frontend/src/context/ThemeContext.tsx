@@ -2,10 +2,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'dark' | 'light';
 interface ThemeCtx { theme: Theme; toggle: () => void; }
-const Ctx = createContext<ThemeCtx>({ theme: 'dark', toggle: () => {} });
+const Ctx = createContext<ThemeCtx>({ theme: 'light', toggle: () => {} });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'dark');
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'light');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);

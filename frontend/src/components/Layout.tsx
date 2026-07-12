@@ -9,7 +9,7 @@ import type { Vehicle, Driver, Trip, Maintenance } from '../lib/types';
 import { roleLabel, type Section } from '../lib/roles';
 import {
   IconDashboard, IconTruck, IconUsers, IconRoute, IconWrench, IconFuel,
-  IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconLogout, IconMenu, IconClose,
+  IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconMenu, IconClose, IconLogout,
 } from './Icons';
 
 interface NavItem { path: string; label: string; icon: React.FC<{ size?: number }>; section?: Section; }
@@ -49,31 +49,58 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const initials = (user?.name || 'U').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
   const closeMobile = () => setMobileOpen(false);
-
   return (
     <div className="app-shell">
       {mobileOpen && <div className="sidebar-backdrop open" onClick={closeMobile} />}
       <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
-          <div className="brand-mark">T</div>
+          <div className="brand-mark">
+            <div className="brand-mark-inner"></div>
+          </div>
           <div className="brand-text">
             <span className="name">TransitOps</span>
-            <span className="tag">Smart Transport Ops</span>
+            <span className="tag">Smart Transport Operations</span>
           </div>
         </div>
+
+        <div className="sidebar-search">
+          <IconSearch size={15} />
+          <input placeholder="Search" />
+        </div>
+
         <nav className="sidebar-nav">
-          <div className="nav-section-label">Operations</div>
           {visible.map((n) => {
-            const Icon = n.icon;
             const active = location.pathname === n.path;
             return (
               <Link key={n.path} to={n.path} className={`nav-link ${active ? 'active' : ''}`} onClick={closeMobile}>
-                <Icon size={18} />{n.label}
+                <span className="nav-link-dot" />
+                <span className="nav-link-label">{n.label}</span>
               </Link>
             );
           })}
         </nav>
-        <div className="sidebar-foot">TRANSITOPS © 2026 · RBAC v1.0</div>
+
+        <div className="sidebar-profile-box">
+          <div className="profile-details">
+            <div className="profile-avatar">{initials}</div>
+            <div className="profile-text">
+              <div className="profile-name">{user?.name || 'Raven K.'}</div>
+              <div className="profile-role">{roleLabel(user?.role) || 'Fleet Manager'}</div>
+            </div>
+            <button 
+              className="icon-btn" 
+              style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--sidebar-profile-text)', opacity: 0.6 }} 
+              onClick={() => { logout(); navigate('/login'); }} 
+              title="Logout"
+            >
+              <IconLogout size={16} />
+            </button>
+          </div>
+          <button className="go-to-hub-btn" onClick={() => navigate('/')}>
+            <span>Go to Hub</span>
+            <span style={{ fontSize: '11px', fontWeight: 'bold' }}>↗</span>
+          </button>
+        </div>
       </aside>
 
       <div className="main">
@@ -82,11 +109,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             {mobileOpen ? <IconClose size={17} /> : <IconMenu size={17} />}
           </button>
           <div className="topbar-title">{current?.label || 'TransitOps'}</div>
-          <div className="search-box">
-            <IconSearch size={15} />
-            <input placeholder="Search…" />
-          </div>
           <div className="topbar-spacer" />
+          
+          <div className="topbar-stats">
+            <span className="topbar-stat-item"><span className="dot dot-green" /> 0 ISSUES</span>
+            <span className="topbar-stat-item"><span className="dot dot-yellow" /> 3 DELAYS</span>
+            <span className="topbar-stat-item"><span className="dot dot-blue" /> 5 ON TRACK</span>
+          </div>
+
           <div className="notif-wrap">
             <button className="icon-btn" title="Notifications" onClick={() => setNotifOpen((v) => !v)}>
               <IconBell size={17} />{notices.length > 0 && <span className="dot" />}
@@ -107,15 +137,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </div>
             )}
           </div>
+          
           <button className="icon-btn" onClick={toggle} title="Toggle theme">
             {theme === 'dark' ? <IconSun size={17} /> : <IconMoon size={17} />}
-          </button>
-          <div className="user-chip" title={roleLabel(user?.role)}>
-            <span className="uname">{user?.name}</span>
-            <span className="avatar">{initials}</span>
-          </div>
-          <button className="icon-btn" onClick={() => { logout(); navigate('/login'); }} title="Logout">
-            <IconLogout size={17} />
           </button>
         </header>
 
