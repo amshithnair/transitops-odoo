@@ -81,6 +81,9 @@ export interface Expense {
 }
 
 export interface KPIs {
+  total_vehicles: number;
+  total_drivers: number;
+  available_drivers: number;
   active_vehicles: number;
   available_vehicles: number;
   vehicles_in_maintenance: number;
@@ -88,6 +91,10 @@ export interface KPIs {
   pending_trips: number;
   drivers_on_duty: number;
   fleet_utilization_pct: number;
+  total_fuel_cost: number;
+  monthly_expense: number;
+  average_mileage: number | null;
+  vehicle_status_breakdown: { label: string; value: number; color: string }[];
 }
 
 export interface ReportData {

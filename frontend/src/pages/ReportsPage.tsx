@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useData } from '../lib/useData';
 import { demoReport, demoVehicles, demoTrips, demoFuel, demoMaintenance } from '../lib/demo';
 import type { ReportData, Vehicle, Trip, FuelLog, Maintenance } from '../lib/types';
@@ -12,6 +12,10 @@ export const ReportsPage: React.FC = () => {
   const { data: fuelData } = useData<FuelLog[]>('/fuel-logs', demoFuel);
   const { data: maintData } = useData<Maintenance[]>('/maintenance', demoMaintenance);
   const { data: apiReport } = useData<ReportData>('/reports', demoReport);
+
+  const [vehFilter, setVehFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const vehicles = Array.isArray(vehData) ? vehData : demoVehicles;
   const trips = Array.isArray(tripData) ? tripData : demoTrips;
@@ -59,9 +63,13 @@ export const ReportsPage: React.FC = () => {
 
   return (
     <>
-      <PageHead title="Reports & Analytics" sub="Efficiency, utilization & profitability">
+      <PageHead title="Reports & Analytics" sub="Financial performance & efficiency metrics">
         <button className="btn btn-ghost" onClick={exportReport}><IconDownload size={15} />CSV</button>
-        <button className="btn btn-ghost" onClick={() => window.print()}><IconDownload size={15} />PDF</button>
+        <div className="filters" style={{ marginBottom: 0 }}>
+          <div className="filter-group"><label>Vehicle</label><select className="select" value={vehFilter} onChange={(e) => setVehFilter(e.target.value)}><option value="">All</option>{vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}</select></div>
+          <div className="filter-group"><label>From</label><input className="input" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} /></div>
+          <div className="filter-group"><label>To</label><input className="input" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} /></div>
+        </div>
       </PageHead>
 
       <div className="kpi-row mb-20">

@@ -11,20 +11,38 @@ import { PageHead, Badge, ColorBadge, Modal, exportCsv, Th, CustomSelect } from 
 import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert, IconUsers } from '../components/Icons';
 
 const DRIVER_STATUSES = ['Available', 'On Trip', 'Off Duty', 'Suspended'];
-const blank = (): Driver => ({ id: '', name: '', license_number: '', license_category: 'LMV', license_expiry: '', contact_number: '', safety_score: 80, trip_completion_pct: 100, status: 'Available' });
+const blank = (): Driver => ({ id: '', name: '', license_number: '', license_category: 'LMV', license_expiry: '', contact_number: '', safety_score: 80, status: 'Available' });
 
 export const DriversPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'drivers');
-  const { data, reload, setData } = useData<Driver[]>('/drivers', demoDrivers);
-  const rows = Array.isArray(data) ? data : demoDrivers;
 
   const [q, setQ] = useState('');
-  const [selected, setSelected] = useState<string | null>(null);
+  const [statusF, setStatusF] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
+  const params: Record<string, unknown> = { page, page_size: pageSize };
+  if (statusF) params.status = statusF;
+  if (q) params.search = q;
+
+  const { data, reload } = useData<Driver[]>('/drivers', demoDrivers);
+
+  const rows = Array.isArray(data) ? data : demoDrivers;
+  const total = rows.length;
+
   const [form, setForm] = useState<Driver | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Driver | null>(null);
   const [override, setOverride] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const selDriver = rows.find((d) => d.id === selected);
+
+  const setStatus = async (s: string) => {
+    if (!selDriver) return;
+    try { await client.patch(`/drivers/${selDriver.id}`, { status: s }); reload(); } catch { /* */ }
+  };
 
   const filtered = filterBy(rows, q, ['name', 'license_number', 'license_category']);
   const { sorted, toggle, arrow } = useSort<Driver>(filtered);
@@ -41,16 +59,8 @@ export const DriversPage: React.FC = () => {
       setForm(null); reload();
     } catch (e2: unknown) {
       const r = e2 as { response?: { data?: { detail?: string } } };
-      if (r.response) { setErr(r.response.data?.detail || 'Save failed.'); return; }
-      setData(form.id ? rows.map((d) => (d.id === form.id ? form : d)) : [...rows, { ...form, id: `d${Date.now()}` }]);
-      setForm(null);
+      setErr(r.response?.data?.detail || 'Save failed.');
     }
-  };
-
-  const setStatus = async (s: string) => {
-    if (!selected) return;
-    setData(rows.map((d) => (d.id === selected ? { ...d, status: s } : d)));
-    try { await client.patch(`/drivers/${selected}`, { status: s }); } catch { /* offline demo: local only */ }
   };
 
   const remove = async (d: Driver) => {
@@ -58,19 +68,18 @@ export const DriversPage: React.FC = () => {
     setDeleteTarget(null);
   };
 
-  const selDriver = rows.find((d) => d.id === selected);
-
   return (
     <>
-      <PageHead title="Drivers & Safety Profiles" sub={`${rows.length} drivers`}>
-        <button className="btn btn-ghost" onClick={() => exportCsv('drivers.csv', filtered as unknown as Record<string, unknown>[])}><IconDownload size={15} />CSV</button>
+      <PageHead title="Drivers & Safety Profiles" sub={`${total} drivers`}>
+        <button className="btn btn-ghost" onClick={() => exportCsv('drivers.csv', rows as unknown as Record<string, unknown>[])}><IconDownload size={15} />CSV</button>
         {editable && <button className="btn btn-primary" onClick={() => { setErr(null); setOverride(false); setForm(blank()); }}><IconPlus size={15} />Add Driver</button>}
       </PageHead>
 
       {!editable && <div className="view-note"><IconAlert size={15} />View-only access to Drivers — contact a Safety Officer or Fleet Manager to modify.</div>}
 
       <div className="filters">
-        <div className="filter-group"><label>Search</label><input className="input" placeholder="Name or license…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <div className="filter-group"><label>Search</label><input className="input" placeholder="Name, license, email…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} /></div>
+        <div className="filter-group"><label>Status</label><select className="select" value={statusF} onChange={(e) => { setStatusF(e.target.value); setPage(1); }}><option value="">All</option>{DRIVER_STATUSES.map(s => <option key={s}>{s}</option>)}</select></div>
       </div>
 
       <div className="card">
@@ -132,14 +141,13 @@ export const DriversPage: React.FC = () => {
           footer={<><button className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button><button className="btn btn-primary" form="drv-form">Save Driver</button></>}>
           <form id="drv-form" onSubmit={save}>
             {err && <div className="alert alert-danger">{err}</div>}
-            <div className="field"><label>Name</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
             <div className="field-row">
               <div className="field"><label>License Number</label><input className="input" required value={form.license_number} onChange={(e) => setForm({ ...form, license_number: e.target.value })} placeholder="DL-88213" /></div>
               <div className="field"><label>Category</label><CustomSelect value={form.license_category} onChange={(v) => setForm({ ...form, license_category: v })} options={['LMV', 'HMV', 'MGV']} /></div>
             </div>
             <div className="field-row">
               <div className="field"><label>License Expiry</label><input className="input" type="date" required value={form.license_expiry} onChange={(e) => setForm({ ...form, license_expiry: e.target.value })} /></div>
-              <div className="field"><label>Contact</label><input className="input" value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} /></div>
+              <div className="field"><label>Contact</label><input className="input" value={form.contact_number || ''} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} /></div>
             </div>
             <div className="field-row">
               <div className="field"><label>Safety Score</label><input className="input" type="number" min={0} max={100} value={form.safety_score} onChange={(e) => setForm({ ...form, safety_score: +e.target.value })} /></div>
