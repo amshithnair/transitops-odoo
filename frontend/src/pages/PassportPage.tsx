@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../lib/useData';
@@ -93,7 +93,7 @@ export const PassportPage: React.FC = () => {
   const navigate = useNavigate();
   const isManager = user?.role === 'fleet_manager';
 
-  const { data, loading, error, reload } = useData<PassportData>(`/vehicles/${id}/passport`, null as any);
+  const { data, loading, live, reload } = useData<PassportData>(`/vehicles/${id}/passport`, null as any);
   const [activeTab, setActiveTab] = useState<'timeline' | 'trips' | 'maint' | 'fuel' | 'expenses'>('timeline');
   const [updatingExpiries, setUpdatingExpiries] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
@@ -166,7 +166,7 @@ export const PassportPage: React.FC = () => {
   };
 
   if (loading) return <Loader />;
-  if (error || !data) {
+  if (!live || !data) {
     return (
       <div className="card card-pad text-center">
         <IconAlert size={40} style={{ color: 'var(--red)', marginBottom: 16 }} />
