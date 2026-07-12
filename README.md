@@ -1,16 +1,21 @@
-# TransitOps Fleet Operations Platform
 <div align="center">
-> Fleet operations platform — full content coming.
+
   <img src="https://www.odoo.com/web/image/website/1/logo/odoo?unique=bdc4a11" alt="Odoo Logo" height="50" />
+
   <br /><br />
+
   <h1>🚛 TransitOps</h1>
   <p><strong>Smart Transport Operations Platform</strong></p>
   <p>End-to-end fleet management — vehicles, drivers, dispatch, maintenance, fuel, and analytics in one platform.</p>
+
   <br />
+
   <img src="https://img.shields.io/badge/Odoo%20Hackathon-2026-714B67?style=for-the-badge&logo=odoo&logoColor=white" />
   <img src="https://img.shields.io/badge/Build%20Window-8%20Hours-FF6B35?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Team-3%20Members-4A90D9?style=for-the-badge" />
+
   <br /><br />
+
   <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
   <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
@@ -19,12 +24,18 @@
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white" />
   <img src="https://img.shields.io/badge/JWT-Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white" />
   <img src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square" />
+
 </div>
+
 ---
+
 > 🏆 **Odoo Hackathon 2026 Submission**
 > Built in 8 hours by a team of 3. Challenge set by Odoo — objective: build an end-to-end transport operations platform that digitizes vehicle, driver, dispatch, maintenance, and expense management while enforcing business rules and providing operational insights.
+
 ---
+
 ## 📑 Table of Contents
+
 - [Overview](#overview)
 - [Hackathon Context](#hackathon-context)
 - [Features](#features)
@@ -44,13 +55,21 @@
 - [Team](#team)
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
+
 ---
+
 ## Overview
+
 **The Problem:** Logistics companies across India and globally still rely on spreadsheets, WhatsApp groups, and paper logbooks to manage their fleet operations. This causes scheduling conflicts, underutilized vehicles sitting idle in depots, missed maintenance windows leading to breakdowns, expired driver licenses going unnoticed, inaccurate expense tracking bleeding money, and zero operational visibility for management. When a fleet manager needs to answer "which vehicles are available right now?" — they're making phone calls, not checking a dashboard.
+
 **The Solution:** TransitOps is a centralized, full-stack platform that manages the complete lifecycle of transport operations. From vehicle registration and driver onboarding, through trip dispatching with automated business rule enforcement, to maintenance scheduling, fuel logging, and real-time analytics — everything lives in one system. Every state transition is validated server-side. Every role sees only what they're authorized to see. Every metric is computed from real operational data, not estimates.
+
 **Hackathon Context:** TransitOps was built in 8 hours for the Odoo Hackathon 2026 by a team of 3 developers. The problem statement from Odoo defined a mandatory scope covering authentication, fleet management, trip dispatch, maintenance, fuel tracking, and analytics — all with strict business rules. Beyond meeting every mandatory requirement, the team shipped 4 additional X-Factor features: Digital Vehicle Passport, Predictive Maintenance Engine, AI Dispatch Recommendation, and Interactive Fleet Map — demonstrating what a production-ready fleet platform looks like.
+
 ---
+
 ## Hackathon Context
+
 > ### 🏆 Odoo Hackathon 2026
 > **Challenge:** Smart Transport Operations Platform
 > **Duration:** 8 hours (09:00 – 16:30)
@@ -60,9 +79,13 @@
 > This project was built entirely within the hackathon window. The problem statement was provided by Odoo and required building a production-ready MVP covering authentication, fleet management, trip dispatch, maintenance, fuel tracking, and analytics — all enforced with strict business rules.
 >
 > Beyond the mandatory scope, the team implemented 4 X-Factor features: Digital Vehicle Passport, Predictive Maintenance Engine, AI Dispatch Recommendation, and Interactive Fleet Map.
+
 ---
+
 ## Features
+
 ### Mandatory Features (from Odoo problem statement)
+
 | # | Feature | Description |
 |---|---------|-------------|
 | 1 | **Authentication & RBAC** | Secure JWT login, forgot password with Gmail OTP, 4 roles (Fleet Manager, Driver, Safety Officer, Financial Analyst), server-side role enforcement on every endpoint |
@@ -74,15 +97,20 @@
 | 7 | **Fuel & Expense Management** | Fuel logs per trip and vehicle, expense tracking by category (Toll, Fine, Parking, Other), auto-computed operational cost |
 | 8 | **Dashboard & KPIs** | Real-time KPIs: Active Vehicles, Available Vehicles, In Maintenance, Active Trips, Pending Trips, Drivers On Duty, Fleet Utilization (%). Filterable by vehicle type, status, and region |
 | 9 | **Reports & Analytics** | Fuel Efficiency (km/L), Fleet Utilization, Operational Cost, Vehicle ROI — with CSV export |
+
 ### X-Factor Features (beyond problem statement)
+
 | # | Feature | Description |
 |---|---------|-------------|
 | ⚡ 1 | **Digital Vehicle Passport** | One endpoint aggregating a vehicle's entire lifecycle: full trip history, maintenance history, fuel logs, expenses, compliance status timeline, and summary stats (total cost, revenue, ROI, avg efficiency) |
 | ⚡ 2 | **Predictive Maintenance Engine** | Heuristic-based forecasting using 3 signals: odometer interval (10k km), time interval (180 days), and recurring service-type patterns. Returns urgency level + predicted next service date per vehicle |
 | ⚡ 3 | **AI Dispatch Recommendation** | Rule-based scoring engine that ranks available vehicle+driver pairs for a given trip — by safety score, fuel efficiency, load compatibility, region proximity, and maintenance recency |
 | ⚡ 4 | **Interactive Fleet Map** | Region-grouped vehicle status visualization with live status breakdown (available, on trip, in shop counts) per region |
+
 ---
+
 ## Tech Stack
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    TransitOps Stack                  │
@@ -107,8 +135,11 @@
 │             │  PowerShell E2E test suite (~60 tests)  │
 └─────────────┴────────────────────────────────────────┘
 ```
+
 ---
+
 ## Architecture
+
 ```mermaid
 graph TB
     subgraph Frontend ["Frontend (React + TS :5173)"]
@@ -116,6 +147,7 @@ graph TB
         AC[AuthContext]
         AX[Axios Client]
     end
+
     subgraph Backend ["Backend (FastAPI :8000)"]
         AUTH["/auth & /users"]
         TRIPS["/trips"]
@@ -130,6 +162,7 @@ graph TB
         DISPATCH["/ai-dispatch"]
         MAP["/vehicles/regions"]
     end
+
     subgraph DB ["PostgreSQL (Docker :5432)"]
         USERS[(Users)]
         VEH[(Vehicles)]
@@ -139,6 +172,7 @@ graph TB
         FL[(FuelLogs)]
         EXP[(Expenses)]
     end
+
     UI --> AC --> AX
     AX -->|JWT Bearer| AUTH
     AX --> TRIPS & VEHICLES & DRIVERS & MAINT
@@ -148,8 +182,11 @@ graph TB
     MAINT & FUEL & DASH & REPORTS --> DB
     PASSPORT & PREDICT & DISPATCH & MAP --> DB
 ```
+
 ---
+
 ## Data Model
+
 ```mermaid
 erDiagram
     User ||--o{ Trip : "creates"
@@ -160,6 +197,7 @@ erDiagram
     Vehicle ||--o{ Expense : "incurs"
     Driver ||--o{ Trip : "drives"
     Trip ||--o{ FuelLog : "auto-creates on complete"
+
     User {
         string id PK
         string name
@@ -171,6 +209,7 @@ erDiagram
         datetime reset_token_expiry
         string created_by FK
     }
+
     Vehicle {
         string id PK
         string registration_number UK
@@ -182,6 +221,7 @@ erDiagram
         enum status
         string region
     }
+
     Driver {
         string id PK
         string name
@@ -192,6 +232,7 @@ erDiagram
         float safety_score
         enum status
     }
+
     Trip {
         string id PK
         string source
@@ -208,6 +249,7 @@ erDiagram
         datetime completed_at
         datetime cancelled_at
     }
+
     MaintenanceLog {
         string id PK
         string vehicle_id FK
@@ -218,6 +260,7 @@ erDiagram
         datetime opened_at
         datetime closed_at
     }
+
     FuelLog {
         string id PK
         string vehicle_id FK
@@ -227,6 +270,7 @@ erDiagram
         date date
         float odometer_km
     }
+
     Expense {
         string id PK
         string vehicle_id FK
@@ -236,9 +280,13 @@ erDiagram
         string notes
     }
 ```
+
 ---
+
 ## Business Rules
+
 All 10 rules are enforced **server-side** with clean 4xx responses — the UI is supplementary, not the enforcement layer.
+
 | # | Rule | Enforced At | HTTP Error |
 |---|------|------------|-----------|
 | 1 | Vehicle registration number must be unique | Vehicle Create | `409 Conflict` |
@@ -251,9 +299,13 @@ All 10 rules are enforced **server-side** with clean 4xx responses — the UI is
 | 8 | Cancelling a dispatched trip restores vehicle and driver to Available | Trip Cancel | Auto-transition |
 | 9 | Opening a maintenance record sets vehicle to In Shop | Maintenance Open | Auto-transition |
 | 10 | Closing maintenance restores vehicle to Available (unless Retired) | Maintenance Close | Auto-transition |
+
 > ⚠️ **Rules 3 and 4 are validated at both trip creation AND dispatch** — race-condition guard so state changes between the two steps don't bypass enforcement.
+
 ---
+
 ## RBAC Matrix
+
 | Action | Fleet Manager | Driver | Safety Officer | Financial Analyst |
 |--------|:---:|:---:|:---:|:---:|
 | Create / manage users | ✅ | ❌ | ❌ | ❌ |
@@ -271,8 +323,11 @@ All 10 rules are enforced **server-side** with clean 4xx responses — the UI is
 | Predictive Maintenance | ✅ | ❌ | ✅ | ❌ |
 | AI Dispatch | ✅ | ❌ | ❌ | ❌ |
 | Fleet Map | ✅ | ✅ | ✅ | ✅ |
+
 ---
+
 ## Project Structure
+
 ```
 transitops/
 ├── backend/
@@ -348,20 +403,28 @@ transitops/
 ├── .env.example
 └── README.md
 ```
+
 ---
+
 ## Getting Started
+
 ### Prerequisites
+
 - **Docker Desktop** (or Docker Engine + Docker Compose v2)
 - **PowerShell 7+** (for test suite — Windows/macOS/Linux)
 - **Git**
+
 ### One-Command Startup
+
 ```bash
 git clone https://github.com/amshithnair/transitops-odoo.git
 cd transitops-odoo
 cp .env.example .env       # add your Gmail SMTP credentials
 docker compose up --build
 ```
+
 No manual database setup. No Python environment. No `npm install`.
+
 | Service | URL |
 |---------|-----|
 | 🌐 Frontend | [http://localhost:5173](http://localhost:5173) |
@@ -369,14 +432,18 @@ No manual database setup. No Python environment. No `npm install`.
 | 📖 Swagger UI | [http://localhost:8000/docs](http://localhost:8000/docs) |
 | 📄 ReDoc | [http://localhost:8000/redoc](http://localhost:8000/redoc) |
 | 🔧 OpenAPI JSON | [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json) |
+
 ### Environment Variables (`.env`)
+
 ```env
 # Database (auto-configured by Docker Compose — no changes needed)
 DATABASE_URL=postgresql+psycopg2://transitops:transitops@db:5432/transitops
+
 # JWT
 JWT_SECRET=your-strong-secret-key-here
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=480
+
 # Gmail SMTP
 # Use a Gmail App Password (not your account password)
 # Generate at: Google Account → Security → 2-Step Verification → App Passwords
@@ -385,20 +452,28 @@ SMTP_PORT=587
 SMTP_USER=your-fleet-email@gmail.com
 SMTP_PASSWORD=xxxx-xxxx-xxxx-xxxx
 SMTP_FROM_EMAIL=transitops@yourdomain.com
+
 # Frontend
 FRONTEND_URL=http://localhost:5173
 ```
+
 ---
+
 ## Demo Credentials
+
 Seeded automatically on first startup:
+
 | Role | Email | Password | Access |
 |------|-------|----------|--------|
 | 🔑 Fleet Manager | `fleet@transitops.com` | `Fleet@123` | Full platform access |
 | 🚗 Driver | `driver@transitops.com` | `Driver@123` | Own trips + fuel logs |
 | 🛡 Safety Officer | `safety@transitops.com` | `Safety@123` | Compliance + reports |
 | 💰 Financial Analyst | `finance@transitops.com` | `Finance@123` | Expenses + reports |
+
 > **Creating more demo users:** Log in as Fleet Manager → go to **Settings** → scroll to **User Management** → create users with any role. No database access needed — built for jury demos.
+
 ### Pre-seeded Example Workflow
+
 - ✅ **VAN-05** (Ford Transit 2024) registered — 2500 kg capacity, Available
 - ✅ **TRK-12** (Volvo FH16) registered — 18000 kg capacity, Available
 - ✅ **VAN-03** (Mercedes Sprinter) registered — 2000 kg capacity, Available
@@ -406,15 +481,22 @@ Seeded automatically on first startup:
 - ✅ **Maria Garcia** registered — valid license (C+E), safety score 98, Available
 - ✅ **James Chen** registered — license category B, Off Duty
 - ✅ All reports, ROI, and Vehicle Passport ready to populate with real operational data
+
 ---
+
 ## Running Tests
+
 ### PowerShell E2E Suite
+
 Tests the live Docker stack end-to-end:
+
 ```powershell
 # Ensure docker compose up --build is running first
 .\testscripts\Run-Tests.ps1
 ```
+
 Expected output:
+
 ```
 ========================================
   TransitOps Full Feature Test Suite
@@ -437,20 +519,30 @@ Expected output:
 ========================================
 All tests passed!
 ```
+
 ### Pytest — Backend Unit + Integration Tests
+
 ```bash
 cd testscripts
 python -m pytest backend/ -v
 ```
+
 ### Bash Smoke Test
+
 ```bash
 bash testscripts/smoke_test.sh
 ```
+
 ---
+
 ## API Documentation
+
 Full interactive docs available at **[http://localhost:8000/docs](http://localhost:8000/docs)** (Swagger UI) and **[http://localhost:8000/redoc](http://localhost:8000/redoc)** (ReDoc).
+
 Import the OpenAPI spec into Postman or Insomnia via `docs/openapi.json`.
+
 **Key API groups:**
+
 | Group | Endpoints | Description |
 |-------|-----------|-------------|
 | Auth | `POST /auth/login`, `/register`, `/forgot-password`, `/verify-otp`, `/reset-password`, `GET /auth/me` | Authentication + password reset flow |
@@ -464,8 +556,11 @@ Import the OpenAPI spec into Postman or Insomnia via `docs/openapi.json`.
 | Reports | `GET /reports/fuel-efficiency`, `/utilization`, `/cost`, `/roi` | Analytics + CSV |
 | Passport | `GET /vehicles/{id}/passport` | ⚡ Digital Vehicle Passport |
 | Predictive | `GET /maintenance/forecast/{id}` | ⚡ Predictive Maintenance |
+
 ---
+
 ## Security
+
 - 🔐 **JWT tokens** — contain only `sub`, `role`, `exp`. No PII in the token payload.
 - 🔑 **Passwords** — bcrypt hashed (cost factor 12). Never stored in plain text.
 - 📧 **OTP flow** — 6-digit random code, stored as SHA256 hash, expires in 15 minutes. 2-step: OTP verify → time-limited reset code → new password.
@@ -473,25 +568,37 @@ Import the OpenAPI spec into Postman or Insomnia via `docs/openapi.json`.
 - 🛡 **RBAC** — enforced server-side via FastAPI `Depends()` on every mutating endpoint. UI hiding is supplementary.
 - 👁 **Ownership filtering** — drivers can only access their own trips at the DB query level, not just the role check.
 - 🚫 **Error responses** — clean 4xx messages. No stack traces or SQL errors leaked to client.
+
 ---
+
 ## Team
+
 | Role | Responsibilities |
 |------|-----------------|
 | **Lead** | System design · Auth + RBAC · Trip lifecycle · Maintenance workflow · Digital Vehicle Passport · Predictive Maintenance · Security audit · QA · Code review |
 | **Backend Dev** | Vehicle Registry · Driver Management · Fuel & Expense · Dashboard KPIs · Reports & CSV · AI Dispatch Recommendation · Fleet Map |
 | **Frontend Dev** | All React pages · AuthContext · Axios client · RBAC-aware routing · KPI charts (Recharts) · Region cards |
+
 ---
+
 ## Acknowledgements
-```
-Built with ❤️ for the Odoo Hackathon 2026.
-Challenge provided by Odoo — https://www.odoo.com
-Problem Statement: Smart Transport Operations Platform
-Duration: 8 Hours
-```
+
+Built with ❤️ for the **Odoo Hackathon 2026**.
+
+Challenge provided by [Odoo](https://www.odoo.com) — Problem Statement: *Smart Transport Operations Platform* — Duration: **8 Hours**
+
 ---
+
 ## License
+
 MIT License — see [`LICENSE`](LICENSE) file.
+
 ---
+
 <div align="center">
-  <sub>Built with 🚛 by the TransitOps team for Odoo Hackathon 2026</sub>
+  <br />
+  <strong>Built with Love ❤️ by the TransitOps Team</strong>
+  <br />
+  <sub>Odoo Hackathon 2026 · 8 Hours · 3 Developers · 1 Platform</sub>
+  <br /><br />
 </div>
