@@ -83,35 +83,33 @@ export const MaintenancePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="card">
-              <div className="card-head"><h3>Service Log</h3></div>
-              <div className="table-wrap">
-                <table className="table">
-                  <thead><tr>
-                    <Th label="Vehicle" arrow={arrow('vehicle_label')} onClick={() => toggle('vehicle_label')} />
-                    <Th label="Service" arrow={arrow('service_type')} onClick={() => toggle('service_type')} />
-                    <Th label="Cost" arrow={arrow('cost')} onClick={() => toggle('cost')} />
-                    <Th label="Date" arrow={arrow('date')} onClick={() => toggle('date')} />
-                    <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
-                    {editable && <th></th>}
-                  </tr></thead>
-                  <tbody>
-                    {sorted.map((m) => (
-                      <tr key={m.id}>
-                        <td className="mono td-strong">{m.vehicle_label}</td>
-                        <td>{m.service_type}</td>
-                        <td>₹{fmtNum(m.cost)}</td>
-                        <td className="text-muted">{fmtDate(m.date)}</td>
-                        <td><Badge status={m.status} /></td>
-                        {editable && <td><button className="btn btn-ghost btn-sm" onClick={() => toggleClose(m)}>{m.status === 'Active' ? <><IconCheck size={13} />Close</> : 'Reopen'}</button></td>}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
+        <div className="card">
+          <div className="card-head"><h3>Service Log</h3></div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr>
+                <Th label="Vehicle" arrow={arrow('vehicle_label')} onClick={() => toggle('vehicle_label')} />
+                <Th label="Service" arrow={arrow('service_type')} onClick={() => toggle('service_type')} />
+                <Th label="Cost" arrow={arrow('cost')} onClick={() => toggle('cost')} />
+                <Th label="Date" arrow={arrow('date')} onClick={() => toggle('date')} />
+                <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
+                {editable && <th></th>}
+              </tr></thead>
+              <tbody className="table-animated">
+                {sorted.map((m) => (
+                  <tr key={m.id}>
+                    <td className="mono td-strong">{m.vehicle_label}</td>
+                    <td>{m.service_type}</td>
+                    <td>₹{fmtNum(m.cost)}</td>
+                    <td className="text-muted">{fmtDate(m.date)}</td>
+                    <td><Badge status={m.status} /></td>
+                    {editable && <td><button className="btn btn-ghost btn-sm" onClick={() => toggleClose(m)}>{m.status === 'Active' ? <><IconCheck size={13} />Close</> : 'Reopen'}</button></td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </>
   );

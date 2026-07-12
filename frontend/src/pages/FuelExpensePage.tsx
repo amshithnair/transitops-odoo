@@ -113,7 +113,7 @@ export const FuelExpensePage: React.FC = () => {
               <Th label="Liters" arrow={fuelSort.arrow('liters')} onClick={() => fuelSort.toggle('liters')} />
               <Th label="Fuel Cost" arrow={fuelSort.arrow('fuel_cost')} onClick={() => fuelSort.toggle('fuel_cost')} />
             </tr></thead>
-            <tbody>
+            <tbody className="table-animated">
               {fuelSort.sorted.map((r) => (
                 <tr key={r.id}><td className="mono td-strong">{r.vehicle_label}</td><td className="text-muted">{fmtDate(r.date)}</td><td>{r.liters} L</td><td>₹{fmtNum(r.fuel_cost)}</td></tr>
               ))}
@@ -134,7 +134,7 @@ export const FuelExpensePage: React.FC = () => {
               <th>Maint. (linked)</th>
               <Th label="Total" arrow={expSort.arrow('total')} onClick={() => expSort.toggle('total')} />
             </tr></thead>
-            <tbody>
+            <tbody className="table-animated">
               {expSort.sorted.map((r) => (
                 <tr key={r.id}>
                   <td className="mono">{r.trip_code}</td><td className="mono">{r.vehicle_label}</td>

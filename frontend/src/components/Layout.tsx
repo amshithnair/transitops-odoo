@@ -9,7 +9,7 @@ import type { Vehicle, Driver, Trip, Maintenance } from '../lib/types';
 import { roleLabel, type Section } from '../lib/roles';
 import {
   IconDashboard, IconTruck, IconUsers, IconRoute, IconWrench, IconFuel,
-  IconChart, IconSettings, IconSearch, IconBell, IconSun, IconMoon, IconMenu, IconClose, IconLogout,
+  IconChart, IconSettings, IconBell, IconSun, IconMoon, IconMenu, IconClose, IconLogout,
 } from './Icons';
 import { Modal } from './ui';
 
@@ -66,10 +66,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </div>
         </div>
 
-        <div className="sidebar-search">
-          <IconSearch size={15} />
-          <input placeholder="Search" />
-        </div>
 
         <nav className="sidebar-nav">
           {visible.map((n) => {
@@ -84,12 +80,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </nav>
 
         <div className="sidebar-profile-box">
-            <div className="profile-details">
-              <div className="profile-avatar">{initials}</div>
-              <div className="profile-text">
-                <div className="profile-name">{user?.name || 'Raven K.'}</div>
-                <div className="profile-role">{roleLabel(user?.role) || 'Fleet Manager'}</div>
-              </div>
+          <div className="profile-details">
+            <div className="profile-avatar">{initials}</div>
+            <div className="profile-text">
+              <div className="profile-name">{user?.name || 'Raven K.'}</div>
+              <div className="profile-role">{roleLabel(user?.role) || 'Fleet Manager'}</div>
             </div>
             <button 
               className="icon-btn logout-btn" 
@@ -98,6 +93,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             >
               <IconLogout size={16} />
             </button>
+          </div>
           <button className="go-to-hub-btn" onClick={() => navigate('/')} title="Go to Hub">
             <span className="hub-text">Go to Hub</span>
             <span className="hub-arrow" style={{ fontSize: '11px', fontWeight: 'bold' }}>↗</span>
@@ -110,7 +106,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <button 
             className="icon-btn hamburger" 
             onClick={() => {
-              if (window.innerWidth <= 768) setMobileOpen(v => !v);
+              if (window.innerWidth <= 860) setMobileOpen(v => !v);
               else setSidebarCollapsed(v => !v);
             }} 
             title="Menu"
@@ -153,13 +149,15 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </header>
 
         <main className="content">
-          <div className="content-inner">{children}</div>
+          <div className="content-inner" key={location.pathname}>{children}</div>
         </main>
       </div>
 
       {logoutModalOpen && (
         <Modal
           title="Confirm Logout"
+          variant="confirm"
+          icon={<IconLogout size={22} />}
           onClose={() => setLogoutModalOpen(false)}
           footer={
             <>
@@ -168,9 +166,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </>
           }
         >
-          <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-muted)' }}>
-            Are you sure you want to log out of TransitOps?
-          </p>
+          Are you sure you want to log out of TransitOps?
         </Modal>
       )}
     </div>

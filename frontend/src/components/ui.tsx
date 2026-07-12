@@ -79,26 +79,40 @@ export const Modal: React.FC<{
   splitIcon?: React.ReactNode;
   splitTitle?: string;
   splitDesc?: string;
-}> = ({ title, onClose, children, footer, splitIcon, splitTitle, splitDesc }) => (
+  variant?: 'confirm' | 'default';
+  icon?: React.ReactNode;
+}> = ({ title, onClose, children, footer, splitIcon, splitTitle, splitDesc, variant = 'default', icon }) => (
   <div className="modal-backdrop" onClick={onClose}>
-    <div className={`modal ${splitIcon ? 'modal-split' : ''}`} onClick={(e) => e.stopPropagation()}>
-      {splitIcon && (
-        <div className="modal-left-panel">
-          <div className="mlp-content">
-            <div className="mlp-icon">{splitIcon}</div>
-            <h2 className="mlp-title">{splitTitle || title}</h2>
-            {splitDesc && <p className="mlp-desc">{splitDesc}</p>}
-          </div>
-        </div>
-      )}
-      <div className="modal-right-panel">
-        <div className="modal-head">
-          <h3>{title}</h3>
+    <div className={`modal ${splitIcon ? 'modal-split' : ''} ${variant === 'confirm' ? 'modal-confirm' : ''}`} onClick={(e) => e.stopPropagation()}>
+      {variant === 'confirm' ? (
+        <div className="modal-confirm-content">
           <button className="modal-x" onClick={onClose}><IconClose size={18} /></button>
+          {icon && <div className="modal-confirm-icon">{icon}</div>}
+          <h3 className="modal-confirm-title">{title}</h3>
+          <div className="modal-confirm-text">{children}</div>
+          {footer && <div className="modal-confirm-foot">{footer}</div>}
         </div>
-        <div className="modal-body">{children}</div>
-        {footer && <div className="modal-foot">{footer}</div>}
-      </div>
+      ) : (
+        <>
+          {splitIcon && (
+            <div className="modal-left-panel">
+              <div className="mlp-content">
+                <div className="mlp-icon">{splitIcon}</div>
+                <h2 className="mlp-title">{splitTitle || title}</h2>
+                {splitDesc && <p className="mlp-desc">{splitDesc}</p>}
+              </div>
+            </div>
+          )}
+          <div className="modal-right-panel">
+            <div className="modal-head">
+              <h3>{title}</h3>
+              <button className="modal-x" onClick={onClose}><IconClose size={18} /></button>
+            </div>
+            <div className="modal-body">{children}</div>
+            {footer && <div className="modal-foot">{footer}</div>}
+          </div>
+        </>
+      )}
     </div>
   </div>
 );

@@ -19,6 +19,8 @@ const blank = (): Vehicle => ({ id: '', registration_number: '', name_model: '',
 export const VehiclesPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'fleet');
+  const { data, reload, setData, loading } = useData<Vehicle[]>('/vehicles', demoVehicles);
+  const rows = Array.isArray(data) ? data : demoVehicles;
 
   const [q, setQ] = useState('');
   const [type, setType] = useState('');
@@ -39,6 +41,7 @@ export const VehiclesPage: React.FC = () => {
   const total = rows.length;
 
   const [form, setForm] = useState<Vehicle | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const filtered = filterBy(rows, q, ['registration_number', 'name_model'])
@@ -61,9 +64,9 @@ export const VehiclesPage: React.FC = () => {
   };
 
   const remove = async (v: Vehicle) => {
-    if (!confirm(`Remove ${v.registration_number}?`)) return;
     try { await client.delete(`/vehicles/${v.id}`); reload(); }
-    catch { /* already deleted or offline */ }
+    catch { setData(rows.filter((x) => x.id !== v.id)); }
+    setDeleteTarget(null);
   };
 
   return (
@@ -94,7 +97,7 @@ export const VehiclesPage: React.FC = () => {
               <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
               {editable && <th></th>}
             </tr></thead>
-            <tbody>
+            <tbody key={q} className="table-animated">
               {sorted.map((v) => (
                 <tr key={v.id}>
                   <td className="mono td-strong">{v.registration_number}</td>
@@ -104,7 +107,7 @@ export const VehiclesPage: React.FC = () => {
                   <td>{fmtNum(v.odometer_km)} km</td>
                   <td>₹{fmtNum(v.acquisition_cost)}</td>
                   <td><Badge status={v.status} /></td>
-                  {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={() => { setErr(null); setForm(v); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={() => remove(v)}><IconTrash size={15} /></button></div></td>}
+                  {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setErr(null); setForm(v); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setDeleteTarget(v); }}><IconTrash size={15} /></button></div></td>}
                 </tr>
               ))}
               {!loading && filtered.length === 0 && <tr><td colSpan={editable ? 8 : 7} className="empty-row">No vehicles match your filters.</td></tr>}
@@ -169,6 +172,22 @@ export const VehiclesPage: React.FC = () => {
               </div>
             </div>
           </form>
+        </Modal>
+      )}
+      {deleteTarget && (
+        <Modal
+          title="Remove Vehicle"
+          variant="confirm"
+          icon={<IconTrash size={22} />}
+          onClose={() => setDeleteTarget(null)}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => remove(deleteTarget)}>Remove</button>
+            </>
+          }
+        >
+          Are you sure you want to remove <strong>{deleteTarget.registration_number}</strong>? This action cannot be undone.
         </Modal>
       )}
     </>
