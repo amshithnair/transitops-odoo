@@ -1,154 +1,232 @@
 <div align="center">
 
-  <img src="https://www.odoo.com/web/image/website/1/logo/odoo?unique=bdc4a11" alt="Odoo Logo" height="50" />
+  <!-- Odoo Hackathon Banner -->
+  <img src="https://www.odoo.com/web/image/website/1/logo/odoo?unique=bdc4a11" alt="Odoo Logo" height="45" />
+  <br />
+  <sub>Hackathon 2026 · Smart Transport Operations Challenge</sub>
 
   <br /><br />
 
-  <h1>🚛 TransitOps</h1>
-  <p><strong>Smart Transport Operations Platform</strong></p>
-  <p>End-to-end fleet management — vehicles, drivers, dispatch, maintenance, fuel, and analytics in one platform.</p>
+  <!-- Project Title -->
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=36&duration=3000&pause=1000&color=4FC3F7&center=true&vCenter=true&width=500&lines=%F0%9F%9A%9B+TransitOps" />
+    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=36&duration=3000&pause=1000&color=1A73E8&center=true&vCenter=true&width=500&lines=%F0%9F%9A%9B+TransitOps" alt="TransitOps" />
+  </picture>
+
+  <h3>Smart Transport Operations Platform</h3>
+
+  <p>
+    <em>End-to-end fleet management — vehicles, drivers, dispatch, maintenance, fuel tracking, and real-time analytics.</em>
+    <br />
+    <em>Built in <strong>8 hours</strong> by <strong>3 developers</strong> for the Odoo Hackathon 2026.</em>
+  </p>
 
   <br />
 
-  <img src="https://img.shields.io/badge/Odoo%20Hackathon-2026-714B67?style=for-the-badge&logo=odoo&logoColor=white" />
-  <img src="https://img.shields.io/badge/Build%20Window-8%20Hours-FF6B35?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Team-3%20Members-4A90D9?style=for-the-badge" />
+  <!-- Hackathon Badges -->
+  <a href="https://www.odoo.com"><img src="https://img.shields.io/badge/🏆_Odoo_Hackathon-2026-714B67?style=for-the-badge" /></a>
+  <img src="https://img.shields.io/badge/⏱_Build_Window-8_Hours-FF6B35?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/👥_Team-3_Members-4A90D9?style=for-the-badge" />
 
   <br /><br />
 
+  <!-- Tech Badges -->
   <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
-  <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black" />
-  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white" />
-  <img src="https://img.shields.io/badge/JWT-Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white" />
+  <img src="https://img.shields.io/badge/Python_3.11-3776AB?style=flat-square&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL_16-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/React_18-61DAFB?style=flat-square&logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/TypeScript_5-3178C6?style=flat-square&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/Docker_Compose-2496ED?style=flat-square&logo=docker&logoColor=white" />
+  <img src="https://img.shields.io/badge/JWT_Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white" />
   <img src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square" />
+
+  <br /><br />
+
+  <!-- Quick Links -->
+  <a href="#-getting-started"><strong>🚀 Quick Start</strong></a> · 
+  <a href="#-features"><strong>✨ Features</strong></a> · 
+  <a href="#-api-documentation"><strong>📖 API Docs</strong></a> · 
+  <a href="#-demo-credentials"><strong>🔑 Demo Login</strong></a>
 
 </div>
 
----
-
-> 🏆 **Odoo Hackathon 2026 Submission**
-> Built in 8 hours by a team of 3. Challenge set by Odoo — objective: build an end-to-end transport operations platform that digitizes vehicle, driver, dispatch, maintenance, and expense management while enforcing business rules and providing operational insights.
+<br />
 
 ---
+
+<br />
+
+> [!NOTE]
+> **🏆 Odoo Hackathon 2026 Submission** — This project was built entirely within an 8-hour hackathon window. The challenge was set by [Odoo](https://www.odoo.com): build a production-ready transport operations platform that digitizes vehicle, driver, dispatch, maintenance, and expense management — all with enforced business rules and operational analytics.
+
+<br />
 
 ## 📑 Table of Contents
 
-- [Overview](#overview)
-- [Hackathon Context](#hackathon-context)
-- [Features](#features)
-  - [Mandatory Features](#mandatory-features-from-odoo-problem-statement)
-  - [X-Factor Features](#x-factor-features-beyond-problem-statement)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Data Model](#data-model)
-- [Business Rules](#business-rules)
-- [RBAC Matrix](#rbac-matrix)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Demo Credentials](#demo-credentials)
-- [Running Tests](#running-tests)
-- [API Documentation](#api-documentation)
-- [Security](#security)
-- [Team](#team)
-- [Acknowledgements](#acknowledgements)
-- [License](#license)
+<details>
+<summary><strong>Click to expand</strong></summary>
 
----
+<br />
 
-## Overview
+- [Overview](#-overview)
+- [Hackathon Context](#-hackathon-context)
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Architecture](#-architecture)
+- [Data Model](#-data-model)
+- [Business Rules](#-business-rules)
+- [RBAC Matrix](#-rbac-matrix)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Demo Credentials](#-demo-credentials)
+- [Running Tests](#-running-tests)
+- [API Documentation](#-api-documentation)
+- [Security](#-security)
+- [Team](#-team)
+- [License](#-license)
 
-**The Problem:** Logistics companies across India and globally still rely on spreadsheets, WhatsApp groups, and paper logbooks to manage their fleet operations. This causes scheduling conflicts, underutilized vehicles sitting idle in depots, missed maintenance windows leading to breakdowns, expired driver licenses going unnoticed, inaccurate expense tracking bleeding money, and zero operational visibility for management. When a fleet manager needs to answer "which vehicles are available right now?" — they're making phone calls, not checking a dashboard.
+</details>
 
-**The Solution:** TransitOps is a centralized, full-stack platform that manages the complete lifecycle of transport operations. From vehicle registration and driver onboarding, through trip dispatching with automated business rule enforcement, to maintenance scheduling, fuel logging, and real-time analytics — everything lives in one system. Every state transition is validated server-side. Every role sees only what they're authorized to see. Every metric is computed from real operational data, not estimates.
+<br />
 
-**Hackathon Context:** TransitOps was built in 8 hours for the Odoo Hackathon 2026 by a team of 3 developers. The problem statement from Odoo defined a mandatory scope covering authentication, fleet management, trip dispatch, maintenance, fuel tracking, and analytics — all with strict business rules. Beyond meeting every mandatory requirement, the team shipped 4 additional X-Factor features: Digital Vehicle Passport, Predictive Maintenance Engine, AI Dispatch Recommendation, and Interactive Fleet Map — demonstrating what a production-ready fleet platform looks like.
+## 🔍 Overview
 
----
+<table>
+<tr>
+<td width="33%">
 
-## Hackathon Context
+### 🔴 The Problem
 
-> ### 🏆 Odoo Hackathon 2026
-> **Challenge:** Smart Transport Operations Platform
-> **Duration:** 8 hours (09:00 – 16:30)
-> **Organized by:** [Odoo](https://www.odoo.com)
-> **Team size:** 3 members
->
-> This project was built entirely within the hackathon window. The problem statement was provided by Odoo and required building a production-ready MVP covering authentication, fleet management, trip dispatch, maintenance, fuel tracking, and analytics — all enforced with strict business rules.
->
-> Beyond the mandatory scope, the team implemented 4 X-Factor features: Digital Vehicle Passport, Predictive Maintenance Engine, AI Dispatch Recommendation, and Interactive Fleet Map.
+Logistics companies rely on **spreadsheets**, WhatsApp groups, and paper logbooks. This causes:
 
----
+- Scheduling conflicts
+- Underutilized vehicles
+- Missed maintenance
+- Expired driver licenses
+- Inaccurate expense tracking
+- **Zero operational visibility**
 
-## Features
+</td>
+<td width="33%">
 
-### Mandatory Features (from Odoo problem statement)
+### 🟢 The Solution
+
+**TransitOps** is a centralized platform managing the complete lifecycle:
+
+- Vehicle registration & tracking
+- Driver onboarding & compliance
+- Automated trip dispatch
+- Maintenance scheduling
+- Fuel & expense logging
+- **Real-time analytics**
+
+</td>
+<td width="33%">
+
+### 🔵 The Context
+
+Built in **8 hours** for the Odoo Hackathon 2026 by **3 developers**.
+
+- ✅ 9 mandatory features shipped
+- ⚡ 4 X-Factor features beyond scope
+- 🔒 10 business rules enforced
+- 🛡️ 4-role RBAC system
+- 📧 Real Gmail OTP integration
+- 🐳 One-command Docker deploy
+
+</td>
+</tr>
+</table>
+
+<br />
+
+## 🏆 Hackathon Context
+
+<div align="center">
+
+| | Detail |
+|:---:|--------|
+| 🏢 | **Organized by** [Odoo](https://www.odoo.com) |
+| 🏆 | **Challenge:** Smart Transport Operations Platform |
+| ⏱️ | **Duration:** 8 hours (09:00 – 16:30) |
+| 👥 | **Team size:** 3 members |
+| 🎯 | **Scope:** Auth, Fleet CRUD, Dispatch, Maintenance, Fuel, Analytics |
+| ⚡ | **Bonus:** 4 X-Factor features beyond problem statement |
+
+</div>
+
+<br />
+
+## ✨ Features
+
+### 📋 Mandatory Features <sub>(from Odoo problem statement)</sub>
 
 | # | Feature | Description |
-|---|---------|-------------|
-| 1 | **Authentication & RBAC** | Secure JWT login, forgot password with Gmail OTP, 4 roles (Fleet Manager, Driver, Safety Officer, Financial Analyst), server-side role enforcement on every endpoint |
-| 2 | **Multi-User Management** | Fleet Manager can create and manage demo users across all roles directly from the UI — no DB access needed for jury demos |
-| 3 | **Vehicle Registry** | Full CRUD — unique registration numbers, type, capacity, odometer, acquisition cost, and status lifecycle (Available / On Trip / In Shop / Retired) |
-| 4 | **Driver Management** | Driver profiles with license validity tracking, safety scores, and status (Available / On Trip / Off Duty / Suspended) |
-| 5 | **Trip Management** | Full lifecycle — Draft → Dispatched → Completed / Cancelled — with automatic vehicle + driver status transitions and dual-point business rule validation (at creation AND dispatch) |
-| 6 | **Maintenance Workflow** | Maintenance logs automatically move vehicles to In Shop, removing them from dispatch pool; closing restores availability |
-| 7 | **Fuel & Expense Management** | Fuel logs per trip and vehicle, expense tracking by category (Toll, Fine, Parking, Other), auto-computed operational cost |
-| 8 | **Dashboard & KPIs** | Real-time KPIs: Active Vehicles, Available Vehicles, In Maintenance, Active Trips, Pending Trips, Drivers On Duty, Fleet Utilization (%). Filterable by vehicle type, status, and region |
-| 9 | **Reports & Analytics** | Fuel Efficiency (km/L), Fleet Utilization, Operational Cost, Vehicle ROI — with CSV export |
+|:---:|---------|-------------|
+| `01` | **🔐 Authentication & RBAC** | JWT login, forgot password with Gmail OTP, 4 roles, server-side enforcement on every endpoint |
+| `02` | **👥 Multi-User Management** | Fleet Manager creates users across all roles from the UI — no DB access needed |
+| `03` | **🚛 Vehicle Registry** | Full CRUD — unique registration, type, capacity, odometer, cost, status lifecycle |
+| `04` | **🧑‍✈️ Driver Management** | License validity tracking, safety scores, status management |
+| `05` | **🗺️ Trip Management** | Draft → Dispatched → Completed/Cancelled with auto status transitions + dual-point validation |
+| `06` | **🔧 Maintenance Workflow** | Auto moves vehicles to In Shop; closing restores availability |
+| `07` | **⛽ Fuel & Expenses** | Per-trip fuel logs, category-based expenses, auto-computed operational cost |
+| `08` | **📊 Dashboard & KPIs** | Real-time metrics with filters by vehicle type, status, and region |
+| `09` | **📈 Reports & Analytics** | Fuel Efficiency, Fleet Utilization, Operational Cost, Vehicle ROI + CSV export |
 
-### X-Factor Features (beyond problem statement)
+### ⚡ X-Factor Features <sub>(beyond problem statement)</sub>
 
-| # | Feature | Description |
-|---|---------|-------------|
-| ⚡ 1 | **Digital Vehicle Passport** | One endpoint aggregating a vehicle's entire lifecycle: full trip history, maintenance history, fuel logs, expenses, compliance status timeline, and summary stats (total cost, revenue, ROI, avg efficiency) |
-| ⚡ 2 | **Predictive Maintenance Engine** | Heuristic-based forecasting using 3 signals: odometer interval (10k km), time interval (180 days), and recurring service-type patterns. Returns urgency level + predicted next service date per vehicle |
-| ⚡ 3 | **AI Dispatch Recommendation** | Rule-based scoring engine that ranks available vehicle+driver pairs for a given trip — by safety score, fuel efficiency, load compatibility, region proximity, and maintenance recency |
-| ⚡ 4 | **Interactive Fleet Map** | Region-grouped vehicle status visualization with live status breakdown (available, on trip, in shop counts) per region |
+| # | Feature | What Makes It Special |
+|:---:|---------|-------------|
+| `⚡1` | **📄 Digital Vehicle Passport** | Single endpoint aggregating a vehicle's entire lifecycle — trips, maintenance, fuel, expenses, compliance timeline, and summary stats |
+| `⚡2` | **🔮 Predictive Maintenance** | Heuristic forecasting via 3 signals: odometer interval (10k km), time interval (180 days), and recurring service patterns |
+| `⚡3` | **🤖 AI Dispatch Recommendation** | Scoring engine ranking vehicle+driver pairs by safety, efficiency, load compatibility, region proximity, and maintenance recency |
+| `⚡4` | **🗺️ Interactive Fleet Map** | Region-grouped vehicle status with live breakdown (available, on trip, in shop) per region |
 
----
+<br />
 
-## Tech Stack
+## 🛠️ Tech Stack
+
+<div align="center">
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    TransitOps Stack                  │
-├─────────────┬────────────────────────────────────────┤
-│  Frontend   │  React 18 + TypeScript + Vite          │
-│             │  Axios (JWT interceptor + 401 redirect) │
-│             │  React Router v6                        │
-│             │  Recharts (KPI charts + analytics)      │
-├─────────────┼────────────────────────────────────────┤
-│  Backend    │  FastAPI (Python 3.11)                  │
-│             │  SQLAlchemy 2.x ORM                     │
-│             │  Pydantic v2 (validation + schemas)     │
-│             │  python-jose (JWT)                      │
-│             │  passlib[bcrypt] (password hashing)     │
-│             │  Gmail SMTP (OTP + email reset)         │
-├─────────────┼────────────────────────────────────────┤
-│  Database   │  PostgreSQL 16 (Docker)                 │
-│             │  Named volume (persistent data)         │
-├─────────────┼────────────────────────────────────────┤
-│  DevOps     │  Docker + Docker Compose (3 services)   │
-│             │  Pytest (backend unit + integration)    │
-│             │  PowerShell E2E test suite (~60 tests)  │
-└─────────────┴────────────────────────────────────────┘
+╔═══════════════════════════════════════════════════════╗
+║                   TRANSITOPS STACK                    ║
+╠═══════════════╦═══════════════════════════════════════╣
+║               ║  React 18 + TypeScript + Vite         ║
+║   FRONTEND    ║  Axios (JWT interceptor + 401 guard)  ║
+║   :5173       ║  React Router v6                      ║
+║               ║  Recharts (KPI charts + analytics)    ║
+╠═══════════════╬═══════════════════════════════════════╣
+║               ║  FastAPI (Python 3.11)                ║
+║   BACKEND     ║  SQLAlchemy 2.x ORM                  ║
+║   :8000       ║  Pydantic v2 (validation + schemas)  ║
+║               ║  python-jose (JWT) + bcrypt           ║
+║               ║  Gmail SMTP (OTP + email reset)       ║
+╠═══════════════╬═══════════════════════════════════════╣
+║   DATABASE    ║  PostgreSQL 16 (Docker)               ║
+║   :5432       ║  Named volume (persistent data)       ║
+╠═══════════════╬═══════════════════════════════════════╣
+║               ║  Docker + Docker Compose (3 services) ║
+║   DEVOPS      ║  Pytest (unit + integration)          ║
+║               ║  PowerShell E2E suite (~60 tests)     ║
+╚═══════════════╩═══════════════════════════════════════╝
 ```
 
----
+</div>
 
-## Architecture
+<br />
+
+## 🏗️ Architecture
 
 ```mermaid
 graph TB
-    subgraph Frontend ["Frontend (React + TS :5173)"]
-        UI[Pages & Components]
-        AC[AuthContext]
-        AX[Axios Client]
+    subgraph Frontend ["🌐 Frontend · React + TS · :5173"]
+        UI["📱 Pages & Components"]
+        AC["🔐 AuthContext"]
+        AX["📡 Axios Client"]
     end
 
-    subgraph Backend ["Backend (FastAPI :8000)"]
+    subgraph Backend ["⚡ Backend · FastAPI · :8000"]
         AUTH["/auth & /users"]
         TRIPS["/trips"]
         VEHICLES["/vehicles"]
@@ -163,7 +241,7 @@ graph TB
         MAP["/vehicles/regions"]
     end
 
-    subgraph DB ["PostgreSQL (Docker :5432)"]
+    subgraph DB ["🗄️ PostgreSQL · Docker · :5432"]
         USERS[(Users)]
         VEH[(Vehicles)]
         DRV[(Drivers)]
@@ -183,9 +261,14 @@ graph TB
     PASSPORT & PREDICT & DISPATCH & MAP --> DB
 ```
 
----
+<br />
 
-## Data Model
+## 📐 Data Model
+
+<details>
+<summary><strong>Click to expand Entity Relationship Diagram</strong></summary>
+
+<br />
 
 ```mermaid
 erDiagram
@@ -281,52 +364,62 @@ erDiagram
     }
 ```
 
----
+</details>
 
-## Business Rules
+<br />
 
-All 10 rules are enforced **server-side** with clean 4xx responses — the UI is supplementary, not the enforcement layer.
+## 📏 Business Rules
 
-| # | Rule | Enforced At | HTTP Error |
-|---|------|------------|-----------|
-| 1 | Vehicle registration number must be unique | Vehicle Create | `409 Conflict` |
-| 2 | Retired or In Shop vehicles cannot be dispatched | Trip Create + Dispatch | `400 Bad Request` |
-| 3 | Drivers with expired license or Suspended status cannot be assigned | Trip Create + Dispatch | `400 Bad Request` |
-| 4 | A vehicle or driver already On Trip cannot be assigned to another trip | Trip Create + Dispatch | `400 Bad Request` |
-| 5 | Cargo weight must not exceed vehicle's max load capacity | Trip Create | `400 Bad Request` |
-| 6 | Dispatching sets both vehicle and driver to On Trip | Trip Dispatch | Auto-transition |
-| 7 | Completing restores both to Available + auto-creates FuelLog | Trip Complete | Auto-transition |
-| 8 | Cancelling a dispatched trip restores vehicle and driver to Available | Trip Cancel | Auto-transition |
-| 9 | Opening a maintenance record sets vehicle to In Shop | Maintenance Open | Auto-transition |
-| 10 | Closing maintenance restores vehicle to Available (unless Retired) | Maintenance Close | Auto-transition |
+> All 10 rules are enforced **server-side** with clean 4xx responses. The UI is supplementary — not the enforcement layer.
 
-> ⚠️ **Rules 3 and 4 are validated at both trip creation AND dispatch** — race-condition guard so state changes between the two steps don't bypass enforcement.
+| # | Rule | When | Response |
+|:---:|------|:----:|:--------:|
+| 1 | Vehicle registration number must be unique | Create | `409` |
+| 2 | Retired / In Shop vehicles cannot be dispatched | Create + Dispatch | `400` |
+| 3 | Expired license or Suspended drivers cannot be assigned | Create + Dispatch | `400` |
+| 4 | Vehicle or driver already On Trip cannot be double-assigned | Create + Dispatch | `400` |
+| 5 | Cargo weight must not exceed vehicle max capacity | Create | `400` |
+| 6 | Dispatching → vehicle + driver status = **On Trip** | Dispatch | Auto |
+| 7 | Completing → both restored to **Available** + FuelLog created | Complete | Auto |
+| 8 | Cancelling dispatched trip → both restored to **Available** | Cancel | Auto |
+| 9 | Opening maintenance → vehicle status = **In Shop** | Open | Auto |
+| 10 | Closing maintenance → vehicle restored to **Available** | Close | Auto |
 
----
+> [!WARNING]
+> **Rules 3 and 4 are validated at both trip creation AND dispatch** — a race-condition guard ensuring state changes between steps cannot bypass enforcement.
 
-## RBAC Matrix
+<br />
 
-| Action | Fleet Manager | Driver | Safety Officer | Financial Analyst |
+## 🛡️ RBAC Matrix
+
+<div align="center">
+
+| Action | 🔑 Fleet Manager | 🚗 Driver | 🛡 Safety Officer | 💰 Financial Analyst |
 |--------|:---:|:---:|:---:|:---:|
-| Create / manage users | ✅ | ❌ | ❌ | ❌ |
-| Vehicle CRUD | ✅ | 👁 Read | 👁 Read | 👁 Read |
-| Driver CRUD | ✅ | ❌ | ✅ Compliance | 👁 Read |
-| Create Trip | ✅ | ✅ | ❌ | ❌ |
-| Dispatch / Cancel Trip | ✅ | ❌ | ❌ | ❌ |
-| Complete Trip | ✅ | ✅ Own | ❌ | ❌ |
+| Create / manage users | ✅ | — | — | — |
+| Vehicle CRUD | ✅ | 👁 | 👁 | 👁 |
+| Driver CRUD | ✅ | — | ✅ | 👁 |
+| Create Trip | ✅ | ✅ | — | — |
+| Dispatch / Cancel Trip | ✅ | — | — | — |
+| Complete Trip | ✅ | ✅ Own | — | — |
 | View Trips | ✅ All | ✅ Own | ✅ All | ✅ All |
-| Maintenance | ✅ | ❌ | ❌ | ❌ |
-| Fuel Logs / Expenses | ✅ | ✅ Own | ❌ | ✅ |
+| Maintenance | ✅ | — | — | — |
+| Fuel Logs / Expenses | ✅ | ✅ Own | — | ✅ |
 | Dashboard | ✅ | ✅ | ✅ | ✅ |
-| Reports | ✅ | ❌ | ✅ | ✅ |
+| Reports | ✅ | — | ✅ | ✅ |
 | Vehicle Passport | ✅ | ✅ | ✅ | ✅ |
-| Predictive Maintenance | ✅ | ❌ | ✅ | ❌ |
-| AI Dispatch | ✅ | ❌ | ❌ | ❌ |
+| Predictive Maintenance | ✅ | — | ✅ | — |
+| AI Dispatch | ✅ | — | — | — |
 | Fleet Map | ✅ | ✅ | ✅ | ✅ |
 
----
+</div>
 
-## Project Structure
+<br />
+
+## 📁 Project Structure
+
+<details>
+<summary><strong>Click to expand full directory tree</strong></summary>
 
 ```
 transitops/
@@ -341,7 +434,7 @@ transitops/
 │   │   ├── deps.py              # get_current_user, require_role dependencies
 │   │   ├── seed.py              # Seeds 4 demo users + example workflow data
 │   │   └── routers/
-│   │       ├── auth.py          # Login, register, forgot-password, OTP, reset, create-users
+│   │       ├── auth.py          # Login, register, forgot-password, OTP, reset
 │   │       ├── vehicles.py      # Vehicle CRUD + filters
 │   │       ├── drivers.py       # Driver CRUD + compliance
 │   │       ├── trips.py         # Trip lifecycle + business rules 2–8
@@ -352,7 +445,7 @@ transitops/
 │   │       ├── passport.py      # ⚡ Digital Vehicle Passport
 │   │       ├── predictive.py    # ⚡ Predictive Maintenance Engine
 │   │       ├── ai_dispatch.py   # ⚡ AI Dispatch Recommendation
-│   │       └── fleet_map.py     # ⚡ Interactive Fleet Map / Region grouping
+│   │       └── fleet_map.py     # ⚡ Interactive Fleet Map
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── .env.example
@@ -360,61 +453,35 @@ transitops/
 │   ├── src/
 │   │   ├── api/client.ts        # Axios instance, JWT injection, 401 interceptor
 │   │   ├── context/AuthContext.tsx
-│   │   ├── components/          # Layout, Sidebar, Navbar, KPICard, StatusBadge, Modal
-│   │   └── pages/
-│   │       ├── LoginPage.tsx
-│   │       ├── DashboardPage.tsx
-│   │       ├── VehiclesPage.tsx
-│   │       ├── DriversPage.tsx
-│   │       ├── TripsPage.tsx
-│   │       ├── MaintenancePage.tsx
-│   │       ├── FuelExpensePage.tsx
-│   │       ├── ReportsPage.tsx
-│   │       ├── PassportPage.tsx
-│   │       └── UsersPage.tsx
+│   │   ├── components/          # Layout, Sidebar, KPICard, StatusBadge, Modal
+│   │   └── pages/               # Login, Dashboard, Vehicles, Drivers, Trips, etc.
 │   ├── package.json
 │   ├── vite.config.ts
-│   ├── Dockerfile
-│   └── .env.example
-├── docs/
-│   ├── PRD.md
-│   ├── BUSINESS_RULES.md
-│   ├── DATA_MODEL.md
-│   ├── API.md
-│   └── openapi.json             # Exported Swagger/OpenAPI spec
+│   └── Dockerfile
 ├── testscripts/
-│   ├── backend/
-│   │   ├── conftest.py
-│   │   ├── test_auth.py
-│   │   ├── test_vehicles.py
-│   │   ├── test_drivers.py
-│   │   ├── test_trips.py
-│   │   ├── test_maintenance.py
-│   │   ├── test_fuel_expense.py
-│   │   ├── test_dashboard.py
-│   │   ├── test_reports.py
-│   │   └── test_passport.py
-│   ├── Test-TransitOps.ps1      # Full PowerShell E2E suite (~60 tests, 14 sections)
-│   ├── Run-Tests.ps1            # Launcher — waits for backend, then runs suite
-│   ├── smoke_test.sh
-│   └── seed_demo_data.sh
+│   ├── backend/                 # Pytest test modules
+│   ├── Test-TransitOps.ps1      # Full PowerShell E2E suite (~60 tests)
+│   └── Run-Tests.ps1            # Launcher script
 ├── docker-compose.yml
 ├── .gitignore
-├── .env.example
 └── README.md
 ```
 
----
+</details>
 
-## Getting Started
+<br />
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- **Docker Desktop** (or Docker Engine + Docker Compose v2)
-- **PowerShell 7+** (for test suite — Windows/macOS/Linux)
-- **Git**
+| Tool | Required |
+|------|----------|
+| 🐳 Docker Desktop | Docker Engine + Compose v2 |
+| 💻 Git | Any recent version |
+| 📝 PowerShell 7+ | For test suite only |
 
-### One-Command Startup
+### One-Command Deploy
 
 ```bash
 git clone https://github.com/amshithnair/transitops-odoo.git
@@ -423,20 +490,24 @@ cp .env.example .env       # add your Gmail SMTP credentials
 docker compose up --build
 ```
 
-No manual database setup. No Python environment. No `npm install`.
+> No manual database setup. No Python environment. No `npm install`. Just Docker.
 
-| Service | URL |
-|---------|-----|
-| 🌐 Frontend | [http://localhost:5173](http://localhost:5173) |
-| ⚡ Backend API | [http://localhost:8000](http://localhost:8000) |
-| 📖 Swagger UI | [http://localhost:8000/docs](http://localhost:8000/docs) |
-| 📄 ReDoc | [http://localhost:8000/redoc](http://localhost:8000/redoc) |
-| 🔧 OpenAPI JSON | [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json) |
+### Service Endpoints
 
-### Environment Variables (`.env`)
+| Service | URL | Description |
+|---------|-----|-------------|
+| 🌐 Frontend | [`localhost:5173`](http://localhost:5173) | React application |
+| ⚡ Backend | [`localhost:8000`](http://localhost:8000) | FastAPI server |
+| 📖 Swagger | [`localhost:8000/docs`](http://localhost:8000/docs) | Interactive API docs |
+| 📄 ReDoc | [`localhost:8000/redoc`](http://localhost:8000/redoc) | Alternative API docs |
+
+### Environment Variables
+
+<details>
+<summary><strong>Click to see <code>.env</code> template</strong></summary>
 
 ```env
-# Database (auto-configured by Docker Compose — no changes needed)
+# Database (auto-configured by Docker Compose)
 DATABASE_URL=postgresql+psycopg2://transitops:transitops@db:5432/transitops
 
 # JWT
@@ -444,8 +515,7 @@ JWT_SECRET=your-strong-secret-key-here
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=480
 
-# Gmail SMTP
-# Use a Gmail App Password (not your account password)
+# Gmail SMTP (use App Password, not account password)
 # Generate at: Google Account → Security → 2-Step Verification → App Passwords
 SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
@@ -457,148 +527,139 @@ SMTP_FROM_EMAIL=transitops@yourdomain.com
 FRONTEND_URL=http://localhost:5173
 ```
 
----
+</details>
 
-## Demo Credentials
+<br />
 
-Seeded automatically on first startup:
+## 🔑 Demo Credentials
 
-| Role | Email | Password | Access |
-|------|-------|----------|--------|
-| 🔑 Fleet Manager | `fleet@transitops.com` | `Fleet@123` | Full platform access |
-| 🚗 Driver | `driver@transitops.com` | `Driver@123` | Own trips + fuel logs |
-| 🛡 Safety Officer | `safety@transitops.com` | `Safety@123` | Compliance + reports |
-| 💰 Financial Analyst | `finance@transitops.com` | `Finance@123` | Expenses + reports |
+Seeded automatically on first startup — **no setup required**:
 
-> **Creating more demo users:** Log in as Fleet Manager → go to **Settings** → scroll to **User Management** → create users with any role. No database access needed — built for jury demos.
+| Role | Email | Password | Scope |
+|:----:|-------|----------|-------|
+| 🔑 Fleet Manager | `fleet@transitops.com` | `Fleet@123` | **Full access** — all CRUD, dispatch, analytics, user management |
+| 🚗 Driver | `driver@transitops.com` | `Driver@123` | Own trips, fuel logs, dashboard |
+| 🛡 Safety Officer | `safety@transitops.com` | `Safety@123` | Compliance monitoring, reports, predictive maintenance |
+| 💰 Financial Analyst | `finance@transitops.com` | `Finance@123` | Expenses, fuel costs, ROI reports |
 
-### Pre-seeded Example Workflow
+> [!TIP]
+> **For jury demos:** Log in as Fleet Manager → **Settings** → **User Management** → create additional users with any role. No database access needed.
 
-- ✅ **VAN-05** (Ford Transit 2024) registered — 2500 kg capacity, Available
-- ✅ **TRK-12** (Volvo FH16) registered — 18000 kg capacity, Available
-- ✅ **VAN-03** (Mercedes Sprinter) registered — 2000 kg capacity, Available
-- ✅ **Alex Johnson** registered — valid license (C), safety score 95, Available
-- ✅ **Maria Garcia** registered — valid license (C+E), safety score 98, Available
-- ✅ **James Chen** registered — license category B, Off Duty
-- ✅ All reports, ROI, and Vehicle Passport ready to populate with real operational data
+### Pre-seeded Data
 
----
+- 🚛 **3 vehicles** — VAN-05 (Ford Transit), TRK-12 (Volvo FH16), VAN-03 (Mercedes Sprinter)
+- 🧑‍✈️ **3 drivers** — Alex Johnson, Maria Garcia, James Chen (varied license categories + safety scores)
+- 📊 All reports, ROI, and Vehicle Passport ready to populate with operational data
 
-## Running Tests
+<br />
+
+## 🧪 Running Tests
 
 ### PowerShell E2E Suite
 
-Tests the live Docker stack end-to-end:
-
 ```powershell
-# Ensure docker compose up --build is running first
+# Ensure Docker stack is running first
 .\testscripts\Run-Tests.ps1
 ```
-
-Expected output:
 
 ```
 ========================================
   TransitOps Full Feature Test Suite
-  Target: http://localhost:8000
 ========================================
 [PASS] Backend health check responds
-[PASS] Register fleet manager (201)
 [PASS] Login fleet manager (200 + token)
-[PASS] Fleet manager creates driver user (201)
 [PASS] Rule 5: Cargo > capacity returns 400
-[PASS] Rule 6: Dispatch trip (Dispatched status)
-[PASS] Rule 9: Vehicle status = In Shop after maintenance open
-[PASS] Vehicle passport endpoint responds
-[PASS] Passport includes compliance_timeline
+[PASS] Rule 9: Vehicle → In Shop after maintenance
+[PASS] Vehicle passport includes compliance_timeline
 ...
+  PASSED : 60 / 60 ✅
 ========================================
-  TEST SUMMARY
-  PASSED : 60 / 60
-  FAILED : 0 / 60
-========================================
-All tests passed!
 ```
 
-### Pytest — Backend Unit + Integration Tests
+### Pytest
 
 ```bash
-cd testscripts
-python -m pytest backend/ -v
+cd testscripts && python -m pytest backend/ -v
 ```
 
-### Bash Smoke Test
+<br />
 
-```bash
-bash testscripts/smoke_test.sh
-```
+## 📖 API Documentation
 
----
+Interactive docs at **[localhost:8000/docs](http://localhost:8000/docs)** (Swagger) and **[localhost:8000/redoc](http://localhost:8000/redoc)** (ReDoc).
 
-## API Documentation
+| Group | Key Endpoints | Purpose |
+|-------|--------------|---------|
+| **Auth** | `POST /auth/login` · `/register` · `/forgot-password` · `/verify-otp` · `/reset-password` | Authentication + OTP reset |
+| **Users** | `POST /users` · `GET /users` | Fleet Manager user management |
+| **Vehicles** | `GET/POST /vehicles` · `PATCH /vehicles/{id}` | Vehicle registry |
+| **Drivers** | `GET/POST /drivers` · `PATCH /drivers/{id}` | Driver management |
+| **Trips** | `POST /trips` · `/trips/{id}/dispatch` · `/complete` · `/cancel` | Trip lifecycle |
+| **Maintenance** | `POST /maintenance` · `/maintenance/{id}/close` | Maintenance workflow |
+| **Fuel & Expenses** | `POST /fuel-logs` · `POST /expenses` | Financial tracking |
+| **Dashboard** | `GET /dashboard/kpis` | Real-time KPIs |
+| **Reports** | `GET /reports/fuel-efficiency` · `/utilization` · `/cost` · `/roi` | Analytics + CSV |
+| **⚡ Passport** | `GET /vehicles/{id}/passport` | Digital Vehicle Passport |
+| **⚡ Predictive** | `GET /maintenance/forecast/{id}` | Maintenance forecasting |
 
-Full interactive docs available at **[http://localhost:8000/docs](http://localhost:8000/docs)** (Swagger UI) and **[http://localhost:8000/redoc](http://localhost:8000/redoc)** (ReDoc).
+<br />
 
-Import the OpenAPI spec into Postman or Insomnia via `docs/openapi.json`.
+## 🔒 Security
 
-**Key API groups:**
+| Layer | Implementation |
+|-------|---------------|
+| 🔐 JWT Tokens | Contains only `sub`, `role`, `exp` — no PII in payload |
+| 🔑 Passwords | bcrypt hashed (cost factor 12) — never stored in plain text |
+| 📧 OTP Flow | 6-digit code → SHA256 hash → 15-min expiry → 2-step reset |
+| 🌐 CORS | Scoped to `localhost:5173` only — not wildcard `*` |
+| 🛡 RBAC | Server-side via `Depends()` on every mutating endpoint |
+| 👁 Ownership | Drivers query only their own trips at the DB level |
+| 🚫 Error Handling | Clean 4xx messages — no stack traces leaked to client |
 
-| Group | Endpoints | Description |
-|-------|-----------|-------------|
-| Auth | `POST /auth/login`, `/register`, `/forgot-password`, `/verify-otp`, `/reset-password`, `GET /auth/me` | Authentication + password reset flow |
-| Users | `POST /users`, `GET /users` | Fleet Manager user management |
-| Vehicles | `GET/POST /vehicles`, `GET/PATCH /vehicles/{id}` | Vehicle registry CRUD |
-| Drivers | `GET/POST /drivers`, `GET/PATCH /drivers/{id}` | Driver management CRUD |
-| Trips | `GET/POST /trips`, `POST /trips/{id}/dispatch`, `/complete`, `/cancel` | Full trip lifecycle |
-| Maintenance | `GET/POST /maintenance`, `POST /maintenance/{id}/close` | Maintenance workflow |
-| Fuel & Expenses | `GET/POST /fuel-logs`, `GET/POST /expenses` | Financial tracking |
-| Dashboard | `GET /dashboard/kpis` | Real-time KPI aggregation |
-| Reports | `GET /reports/fuel-efficiency`, `/utilization`, `/cost`, `/roi` | Analytics + CSV |
-| Passport | `GET /vehicles/{id}/passport` | ⚡ Digital Vehicle Passport |
-| Predictive | `GET /maintenance/forecast/{id}` | ⚡ Predictive Maintenance |
+<br />
 
----
+## 👥 Team
 
-## Security
+<div align="center">
 
-- 🔐 **JWT tokens** — contain only `sub`, `role`, `exp`. No PII in the token payload.
-- 🔑 **Passwords** — bcrypt hashed (cost factor 12). Never stored in plain text.
-- 📧 **OTP flow** — 6-digit random code, stored as SHA256 hash, expires in 15 minutes. 2-step: OTP verify → time-limited reset code → new password.
-- 🌐 **CORS** — scoped to `http://localhost:5173` only. Not wildcard.
-- 🛡 **RBAC** — enforced server-side via FastAPI `Depends()` on every mutating endpoint. UI hiding is supplementary.
-- 👁 **Ownership filtering** — drivers can only access their own trips at the DB query level, not just the role check.
-- 🚫 **Error responses** — clean 4xx messages. No stack traces or SQL errors leaked to client.
+| Role | Focus Areas |
+|:----:|-------------|
+| **🎯 Lead** | System design · Auth + RBAC · Trip lifecycle · Maintenance workflow · Digital Vehicle Passport · Predictive Maintenance · Security audit · QA |
+| **⚙️ Backend Dev** | Vehicle Registry · Driver Management · Fuel & Expense · Dashboard KPIs · Reports & CSV · AI Dispatch · Fleet Map |
+| **🎨 Frontend Dev** | All React pages · AuthContext · Axios client · RBAC-aware routing · KPI charts · Region cards |
 
----
+</div>
 
-## Team
+<br />
 
-| Role | Responsibilities |
-|------|-----------------|
-| **Lead** | System design · Auth + RBAC · Trip lifecycle · Maintenance workflow · Digital Vehicle Passport · Predictive Maintenance · Security audit · QA · Code review |
-| **Backend Dev** | Vehicle Registry · Driver Management · Fuel & Expense · Dashboard KPIs · Reports & CSV · AI Dispatch Recommendation · Fleet Map |
-| **Frontend Dev** | All React pages · AuthContext · Axios client · RBAC-aware routing · KPI charts (Recharts) · Region cards |
+## 📄 License
 
----
+This project is licensed under the **MIT License** — see the [`LICENSE`](LICENSE) file for details.
 
-## Acknowledgements
-
-Built with ❤️ for the **Odoo Hackathon 2026**.
-
-Challenge provided by [Odoo](https://www.odoo.com) — Problem Statement: *Smart Transport Operations Platform* — Duration: **8 Hours**
-
----
-
-## License
-
-MIT License — see [`LICENSE`](LICENSE) file.
+<br />
 
 ---
 
 <div align="center">
+
   <br />
-  <strong>Built with Love ❤️ by the TransitOps Team</strong>
-  <br />
-  <sub>Odoo Hackathon 2026 · 8 Hours · 3 Developers · 1 Platform</sub>
+
+  <img src="https://img.shields.io/badge/Built_with_Love-❤️-FF1744?style=for-the-badge" />
+
   <br /><br />
+
+  <strong>Built with Love ❤️ by the TransitOps Team</strong>
+
+  <br />
+
+  <sub>Odoo Hackathon 2026 · 8 Hours · 3 Developers · 1 Platform · ∞ Possibilities</sub>
+
+  <br /><br />
+
+  <a href="https://www.odoo.com">
+    <img src="https://img.shields.io/badge/Challenge_by-Odoo-714B67?style=flat-square&logo=odoo&logoColor=white" />
+  </a>
+
+  <br /><br />
+
 </div>
