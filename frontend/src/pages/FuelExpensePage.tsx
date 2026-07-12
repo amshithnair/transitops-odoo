@@ -2,24 +2,26 @@ import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../lib/useData';
-import { demoFuel, demoExpenses, demoVehicles } from '../lib/demo';
+import { useSort } from '../lib/useSort';
 import type { FuelLog, Expense, Vehicle } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { fmtNum, fmtDate } from '../lib/status';
-import { PageHead, Modal, exportCsv } from '../components/ui';
-import { IconPlus, IconDownload } from '../components/Icons';
+import { PageHead, Modal, exportCsv, Th, CustomSelect } from '../components/ui';
+import { IconFuel, IconChart, IconPlus, IconDownload } from '../components/Icons';
 
 type ModalKind = 'fuel' | 'expense' | null;
 
 export const FuelExpensePage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'fuel');
-  const { data: fuelData, setData: setFuel } = useData<FuelLog[]>('/fuel-logs', demoFuel);
-  const { data: expData, setData: setExp } = useData<Expense[]>('/expenses', demoExpenses);
-  const { data: vehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const fuelRows = Array.isArray(fuelData) ? fuelData : demoFuel;
-  const expRows = Array.isArray(expData) ? expData : demoExpenses;
-  const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
+  const { data: fuelData, setData: setFuel } = useData<FuelLog[]>('/fuel-logs', []);
+  const { data: expData, setData: setExp } = useData<Expense[]>('/expenses', []);
+  const { data: vehicles } = useData<Vehicle[]>('/vehicles', []);
+  const fuelRows = Array.isArray(fuelData) ? fuelData : [];
+  const expRows = Array.isArray(expData) ? expData : [];
+  const vehRows = Array.isArray(vehicles) ? vehicles : [];
+  const fuelSort = useSort<FuelLog>(fuelRows);
+  const expSort = useSort<Expense>(expRows);
 
   const [modal, setModal] = useState<ModalKind>(null);
   const [f, setF] = useState<FuelLog>({ id: '', vehicle_label: '', date: new Date().toISOString().slice(0, 10), liters: 0, fuel_cost: 0 });
@@ -34,7 +36,7 @@ export const FuelExpensePage: React.FC = () => {
     e.preventDefault();
     setFuel([{ ...f, id: `f${Date.now()}` }, ...fuelRows]);
     setModal(null);
-    try { await client.post('/fuel-logs', f); } catch { /* offline demo */ }
+    try { await client.post('/fuel-logs', f); } catch { /* ignore */ }
     setF({ id: '', vehicle_label: '', date: new Date().toISOString().slice(0, 10), liters: 0, fuel_cost: 0 });
   };
 
@@ -43,7 +45,7 @@ export const FuelExpensePage: React.FC = () => {
     const total = ex.toll + ex.other_misc + ex.maintenance_cost;
     setExp([{ ...ex, total, id: `e${Date.now()}` }, ...expRows]);
     setModal(null);
-    try { await client.post('/expenses', { ...ex, total }); } catch { /* offline demo */ }
+    try { await client.post('/expenses', { ...ex, total }); } catch { /* ignore */ }
     setEx({ id: '', trip_code: '', vehicle_label: '', toll: 0, other_misc: 0, maintenance_cost: 0, total: 0 });
   };
 
@@ -59,9 +61,14 @@ export const FuelExpensePage: React.FC = () => {
         <div className="card-head"><h3>Fuel Logs</h3></div>
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Vehicle</th><th>Date</th><th>Liters</th><th>Fuel Cost</th></tr></thead>
-            <tbody>
-              {fuelRows.map((r) => (
+            <thead><tr>
+              <Th label="Vehicle" arrow={fuelSort.arrow('vehicle_label')} onClick={() => fuelSort.toggle('vehicle_label')} />
+              <Th label="Date" arrow={fuelSort.arrow('date')} onClick={() => fuelSort.toggle('date')} />
+              <Th label="Liters" arrow={fuelSort.arrow('liters')} onClick={() => fuelSort.toggle('liters')} />
+              <Th label="Fuel Cost" arrow={fuelSort.arrow('fuel_cost')} onClick={() => fuelSort.toggle('fuel_cost')} />
+            </tr></thead>
+            <tbody className="table-animated">
+              {fuelSort.sorted.map((r) => (
                 <tr key={r.id}><td className="mono td-strong">{r.vehicle_label}</td><td className="text-muted">{fmtDate(r.date)}</td><td>{r.liters} L</td><td>₹{fmtNum(r.fuel_cost)}</td></tr>
               ))}
             </tbody>
@@ -73,9 +80,16 @@ export const FuelExpensePage: React.FC = () => {
         <div className="card-head"><h3>Other Expenses (Toll / Misc)</h3></div>
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Trip</th><th>Vehicle</th><th>Toll</th><th>Other Misc</th><th>Maint. (linked)</th><th>Total</th></tr></thead>
-            <tbody>
-              {expRows.map((r) => (
+            <thead><tr>
+              <Th label="Trip" arrow={expSort.arrow('trip_code')} onClick={() => expSort.toggle('trip_code')} />
+              <Th label="Vehicle" arrow={expSort.arrow('vehicle_label')} onClick={() => expSort.toggle('vehicle_label')} />
+              <Th label="Toll" arrow={expSort.arrow('toll')} onClick={() => expSort.toggle('toll')} />
+              <Th label="Other Misc" arrow={expSort.arrow('other_misc')} onClick={() => expSort.toggle('other_misc')} />
+              <th>Maint. (linked)</th>
+              <Th label="Total" arrow={expSort.arrow('total')} onClick={() => expSort.toggle('total')} />
+            </tr></thead>
+            <tbody className="table-animated">
+              {expSort.sorted.map((r) => (
                 <tr key={r.id}>
                   <td className="mono">{r.trip_code}</td><td className="mono">{r.vehicle_label}</td>
                   <td>₹{fmtNum(r.toll)}</td><td>₹{fmtNum(r.other_misc)}</td><td>₹{fmtNum(r.maintenance_cost)}</td>
@@ -93,9 +107,15 @@ export const FuelExpensePage: React.FC = () => {
       </div>
 
       {modal === 'fuel' && (
-        <Modal title="Log Fuel" onClose={() => setModal(null)} footer={<><button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary" form="fuel-form">Save</button></>}>
+        <Modal 
+          title="Log Fuel" 
+          splitIcon={<IconFuel size={32} />}
+          splitTitle="Fuel Logging"
+          splitDesc="Record fuel consumption to keep operational expense metrics accurate."
+          onClose={() => setModal(null)} 
+          footer={<><button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary" form="fuel-form">Save</button></>}>
           <form id="fuel-form" onSubmit={saveFuel}>
-            <div className="field"><label>Vehicle</label><select className="select" required value={f.vehicle_label} onChange={(e) => setF({ ...f, vehicle_label: e.target.value })}><option value="">Select…</option>{vehRows.map((v) => <option key={v.id}>{v.registration_number}</option>)}</select></div>
+            <div className="field"><label>Vehicle</label><CustomSelect value={f.vehicle_label} onChange={(v) => setF({ ...f, vehicle_label: v })} options={[{value: '', label: 'Select…'}, ...vehRows.map(v => v.registration_number)]} placeholder="Select…" /></div>
             <div className="field-row">
               <div className="field"><label>Date</label><input className="input" type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></div>
               <div className="field"><label>Liters</label><input className="input" type="number" min={0} value={f.liters || ''} onChange={(e) => setF({ ...f, liters: +e.target.value })} /></div>
@@ -106,11 +126,17 @@ export const FuelExpensePage: React.FC = () => {
       )}
 
       {modal === 'expense' && (
-        <Modal title="Add Expense" onClose={() => setModal(null)} footer={<><button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary" form="exp-form">Save</button></>}>
+        <Modal 
+          title="Add Expense" 
+          splitIcon={<IconChart size={32} />}
+          splitTitle="Trip Expenses"
+          splitDesc="Log tolls, miscellaneous fees, and maintenance costs associated with trips."
+          onClose={() => setModal(null)} 
+          footer={<><button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button><button className="btn btn-primary" form="exp-form">Save</button></>}>
           <form id="exp-form" onSubmit={saveExpense}>
             <div className="field-row">
               <div className="field"><label>Trip Code</label><input className="input" value={ex.trip_code} onChange={(e) => setEx({ ...ex, trip_code: e.target.value })} placeholder="TR001" /></div>
-              <div className="field"><label>Vehicle</label><select className="select" value={ex.vehicle_label} onChange={(e) => setEx({ ...ex, vehicle_label: e.target.value })}><option value="">Select…</option>{vehRows.map((v) => <option key={v.id}>{v.registration_number}</option>)}</select></div>
+              <div className="field"><label>Vehicle</label><CustomSelect value={ex.vehicle_label} onChange={(v) => setEx({ ...ex, vehicle_label: v })} options={[{value: '', label: 'Select…'}, ...vehRows.map(v => v.registration_number)]} placeholder="Select…" /></div>
             </div>
             <div className="field-row">
               <div className="field"><label>Toll (₹)</label><input className="input" type="number" min={0} value={ex.toll || ''} onChange={(e) => setEx({ ...ex, toll: +e.target.value })} /></div>

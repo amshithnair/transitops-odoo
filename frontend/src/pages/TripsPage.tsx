@@ -1,26 +1,28 @@
 import React, { useState } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../lib/useData';
-import { demoTrips, demoVehicles, demoDrivers } from '../lib/demo';
 import type { Trip, Vehicle, Driver } from '../lib/types';
-import { canEdit } from '../lib/roles';
+import { canEdit, roleLabel } from '../lib/roles';
 import { expiryInfo } from '../lib/status';
-import { PageHead, Badge, Modal } from '../components/ui';
-import { IconAlert, IconCheck, IconMap, IconClock } from '../components/Icons';
+import { logActivity } from '../lib/activity';
+import { PageHead, Badge, Modal, exportCsv, CustomSelect } from '../components/ui';
+import { IconAlert, IconCheck, IconMap, IconClock, IconDownload } from '../components/Icons';
 
 const LIFECYCLE = ['Draft', 'Dispatched', 'Completed', 'Cancelled'];
 
 export const TripsPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'trips');
+  const [listRef] = useAutoAnimate<HTMLDivElement>();
 
-  const { data: trips, setData: setTrips } = useData<Trip[]>('/trips', demoTrips);
-  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const { data: drivers, setData: setDrivers } = useData<Driver[]>('/drivers', demoDrivers);
-  const tripRows = Array.isArray(trips) ? trips : demoTrips;
-  const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
-  const drvRows = Array.isArray(drivers) ? drivers : demoDrivers;
+  const { data: trips, setData: setTrips } = useData<Trip[]>('/trips', []);
+  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', []);
+  const { data: drivers, setData: setDrivers } = useData<Driver[]>('/drivers', []);
+  const tripRows = Array.isArray(trips) ? trips : [];
+  const vehRows = Array.isArray(vehicles) ? vehicles : [];
+  const drvRows = Array.isArray(drivers) ? drivers : [];
 
   // Dispatch-eligible pools (business rules): vehicles Available only; drivers Available + not expired
   const availVehicles = vehRows.filter((v) => v.status === 'Available');
@@ -35,6 +37,7 @@ export const TripsPage: React.FC = () => {
   const [completing, setCompleting] = useState<Trip | null>(null);
   const [finalOdo, setFinalOdo] = useState<number>(0);
   const [fuel, setFuel] = useState<number>(0);
+  const [revenue, setRevenue] = useState<number>(0);
 
   const veh = vehRows.find((v) => v.id === vehId);
   const drv = drvRows.find((d) => d.id === drvId);
@@ -56,30 +59,35 @@ export const TripsPage: React.FC = () => {
     setVehicles(vehRows.map((v) => (v.id === veh.id ? { ...v, status: 'On Trip' } : v)));
     setDrivers(drvRows.map((d) => (d.id === drv.id ? { ...d, status: 'On Trip' } : d)));
     reset();
-    try { await client.post('/trips', { source, destination: dest, vehicle_id: veh.id, driver_id: drv.id, cargo_weight_kg: cargo, planned_distance_km: dist, dispatch: true }); } catch { /* offline demo */ }
+    logActivity({ actor: user?.name || 'Unknown', role: roleLabel(user?.role), entity: 'Trip', entityLabel: code, action: 'Dispatched', detail: `${veh.registration_number} & ${drv.name} → On Trip` });
+    try { await client.post('/trips', { source, destination: dest, vehicle_id: veh.id, driver_id: drv.id, cargo_weight_kg: cargo, planned_distance_km: dist, dispatch: true }); } catch { /* ignore */ }
   };
 
   const cancelTrip = async (t: Trip) => {
     setTrips(tripRows.map((x) => (x.id === t.id ? { ...x, status: 'Cancelled' } : x)));
     setVehicles(vehRows.map((v) => (v.registration_number === t.vehicle_label ? { ...v, status: 'Available' } : v)));
     setDrivers(drvRows.map((d) => (d.name === t.driver_label ? { ...d, status: 'Available' } : d)));
-    try { await client.post(`/trips/${t.id}/cancel`); } catch { /* offline demo */ }
+    logActivity({ actor: user?.name || 'Unknown', role: roleLabel(user?.role), entity: 'Trip', entityLabel: t.code || t.id, action: 'Cancelled', detail: `${t.vehicle_label} & ${t.driver_label} restored to Available` });
+    try { await client.post(`/trips/${t.id}/cancel`); } catch { /* ignore */ }
   };
 
   const completeTrip = async () => {
     if (!completing) return;
     const t = completing;
     // cascade: odometer -> fuel log -> expense -> vehicle & driver Available -> Completed
-    setTrips(tripRows.map((x) => (x.id === t.id ? { ...x, status: 'Completed', final_odometer: finalOdo, fuel_consumed: fuel, eta: null } : x)));
+    setTrips(tripRows.map((x) => (x.id === t.id ? { ...x, status: 'Completed', final_odometer: finalOdo, fuel_consumed: fuel, revenue, eta: null } : x)));
     setVehicles(vehRows.map((v) => (v.registration_number === t.vehicle_label ? { ...v, status: 'Available', odometer_km: finalOdo || v.odometer_km } : v)));
     setDrivers(drvRows.map((d) => (d.name === t.driver_label ? { ...d, status: 'Available' } : d)));
-    setCompleting(null); setFinalOdo(0); setFuel(0);
-    try { await client.post(`/trips/${t.id}/complete`, { final_odometer: finalOdo, fuel_consumed: fuel }); } catch { /* offline demo */ }
+    setCompleting(null); setFinalOdo(0); setFuel(0); setRevenue(0);
+    logActivity({ actor: user?.name || 'Unknown', role: roleLabel(user?.role), entity: 'Trip', entityLabel: t.code || t.id, action: 'Completed', detail: `Odometer ${finalOdo}km, fuel ${fuel}L, revenue ₹${revenue} logged; ${t.vehicle_label} & ${t.driver_label} → Available` });
+    try { await client.post(`/trips/${t.id}/complete`, { final_odometer: finalOdo, fuel_consumed: fuel, revenue }); } catch { /* ignore */ }
   };
 
   return (
     <>
-      <PageHead title="Trip Dispatcher" sub="Create, dispatch and monitor trips" />
+      <PageHead title="Trip Dispatcher" sub="Create, dispatch and monitor trips">
+        <button className="btn btn-ghost" onClick={() => exportCsv('trips.csv', tripRows as unknown as Record<string, unknown>[])}><IconDownload size={15} />CSV</button>
+      </PageHead>
 
       {!editable && <div className="view-note"><IconAlert size={15} />You have view access to Trips — contact a Dispatcher to modify.</div>}
 
@@ -109,16 +117,22 @@ export const TripsPage: React.FC = () => {
             </div>
             <div className="field-row">
               <div className="field"><label>Vehicle (Available only)</label>
-                <select className="select" value={vehId} onChange={(e) => setVehId(e.target.value)} disabled={!editable}>
-                  <option value="">Select vehicle…</option>
-                  {availVehicles.map((v) => <option key={v.id} value={v.id}>{v.registration_number} · {v.max_load_capacity_kg}kg</option>)}
-                </select>
+                <CustomSelect 
+                  value={vehId} 
+                  onChange={setVehId} 
+                  options={[{ value: '', label: 'Select vehicle…' }, ...availVehicles.map(v => ({ value: v.id, label: `${v.registration_number} · ${v.max_load_capacity_kg}kg` }))]}
+                  placeholder="Select vehicle…"
+                  disabled={!editable}
+                />
               </div>
               <div className="field"><label>Driver (Available only)</label>
-                <select className="select" value={drvId} onChange={(e) => setDrvId(e.target.value)} disabled={!editable}>
-                  <option value="">Select driver…</option>
-                  {availDrivers.map((d) => <option key={d.id} value={d.id}>{d.name} · safety {d.safety_score}</option>)}
-                </select>
+                <CustomSelect 
+                  value={drvId} 
+                  onChange={setDrvId} 
+                  options={[{ value: '', label: 'Select driver…' }, ...availDrivers.map(d => ({ value: d.id, label: `${d.name} · safety ${d.safety_score}` }))]}
+                  placeholder="Select driver…"
+                  disabled={!editable}
+                />
               </div>
             </div>
             <div className="field-row">
@@ -148,7 +162,7 @@ export const TripsPage: React.FC = () => {
         </div>
 
         {/* RIGHT: live board */}
-        <div className="card card-pad">
+        <div className="card card-pad" ref={listRef}>
           <div className="card-title mb-20">Live Board</div>
           {tripRows.map((t) => (
             <div className="live-card" key={t.id}>
@@ -181,7 +195,8 @@ export const TripsPage: React.FC = () => {
             <div className="field"><label>Final Odometer (km)</label><input className="input" type="number" min={0} value={finalOdo || ''} onChange={(e) => setFinalOdo(+e.target.value)} placeholder="74032" /></div>
             <div className="field"><label>Fuel Consumed (L)</label><input className="input" type="number" min={0} value={fuel || ''} onChange={(e) => setFuel(+e.target.value)} placeholder="42" /></div>
           </div>
-          <div className="alert alert-info"><IconCheck size={14} style={{ verticalAlign: -2, marginRight: 6 }} />On submit: vehicle odometer updates, a fuel log &amp; expense entry are created, and vehicle + driver return to Available.</div>
+          <div className="field"><label>Revenue for this trip (₹)</label><input className="input" type="number" min={0} value={revenue || ''} onChange={(e) => setRevenue(+e.target.value)} placeholder="42000" /></div>
+          <div className="alert alert-info"><IconCheck size={14} style={{ verticalAlign: -2, marginRight: 6 }} />On submit: vehicle odometer updates, a fuel log &amp; expense entry are created, vehicle + driver return to Available, and revenue feeds Vehicle ROI on Analytics.</div>
         </Modal>
       )}
     </>

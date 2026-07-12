@@ -1,8 +1,14 @@
 """
-TransitOps security — JWT token handling and password hashing.
+TransitOps security — JWT token handling, password hashing, OTP, and email.
 """
 
+import hashlib
+import random
+import re
+import smtplib
 from datetime import datetime, timedelta
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import Optional
 
 from jose import JWTError, jwt
@@ -14,10 +20,9 @@ from app.config import settings
 # ──────────────────────────── Password ────────────────────────────
 
 def hash_password(password: str) -> str:
-    """Hash a plaintext password using bcrypt."""
-    # Ensure password is bytes
+    """Hash a plaintext password using bcrypt with cost factor 12."""
     pwd_bytes = password.encode('utf-8')
-    salt = bcrypt.gensalt()
+    salt = bcrypt.gensalt(rounds=12)
     return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
 
 
@@ -31,10 +36,18 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
+def validate_password_strength(password: str) -> None:
+    """
+    Validate password complexity: min 6 chars for hackathon.
+    """
+    if len(password) < 6:
+        raise ValueError("Password must be at least 6 characters long.")
+
+
 # ──────────────────────────── JWT ────────────────────────────
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a JWT access token with the given payload."""
+    """Create a JWT access token with sub, role, and exp claims only."""
     to_encode = data.copy()
     expire = datetime.utcnow() + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -52,3 +65,39 @@ def decode_access_token(token: str) -> Optional[dict]:
         return payload
     except JWTError:
         return None
+
+
+# ──────────────────────────── OTP ────────────────────────────
+
+def generate_otp() -> str:
+    """Generate a random 6-digit OTP code."""
+    return str(random.randint(100000, 999999))
+
+
+def hash_otp(otp: str) -> str:
+    """Hash an OTP code with SHA256 for secure storage."""
+    return hashlib.sha256(otp.encode('utf-8')).hexdigest()
+
+
+# ──────────────────────────── Email ────────────────────────────
+
+def send_email(to_email: str, subject: str, body: str) -> bool:
+    """
+    Send an email via Gmail SMTP with TLS.
+    Returns True on success, False on failure (does not raise).
+    """
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = settings.SMTP_FROM_EMAIL
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain"))
+
+        with smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.send_message(msg)
+        return True
+    except Exception:
+        # Log in production; for hackathon, fail silently
+        return False

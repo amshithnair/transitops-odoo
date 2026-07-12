@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base, SessionLocal
 from app.seed import seed_database
-from app.routers import auth, vehicles, drivers, trips, maintenance, fuel_expense, dashboard, reports
+from app.routers import auth, vehicles, drivers, trips, maintenance, fuel_expense, dashboard, reports, passport, predictive
 
 
 @asynccontextmanager
@@ -42,8 +42,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         settings.FRONTEND_URL,
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -52,13 +50,16 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router)
+app.include_router(auth.users_router)
 app.include_router(vehicles.router)
 app.include_router(drivers.router)
 app.include_router(trips.router)
+app.include_router(predictive.router)
 app.include_router(maintenance.router)
 app.include_router(fuel_expense.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
+app.include_router(passport.router)
 
 
 @app.get("/", tags=["Health"])

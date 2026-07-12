@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import client from '../api/client';
 
-// GET `url`; if the backend is unreachable/errors, fall back to `fallback` demo data
-// so screens still render like the mockups. `live` = true when real API responded.
-export function useData<T>(url: string, fallback: T, params?: Record<string, unknown>) {
-  const [data, setData] = useState<T>(fallback);
+// GET `url`; if the backend is unreachable/errors, data remains initialData
+// `live` = true when real API responded.
+export function useData<T>(url: string, initialData: T, params?: Record<string, unknown>) {
+  const [data, setData] = useState<T>(initialData);
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(false);
 
@@ -20,7 +20,6 @@ export function useData<T>(url: string, fallback: T, params?: Record<string, unk
       setData(value as T);
       setLive(true);
     } catch {
-      setData(fallback);
       setLive(false);
     } finally {
       setLoading(false);

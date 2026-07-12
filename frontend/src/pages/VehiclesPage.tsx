@@ -1,31 +1,34 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData, filterBy } from '../lib/useData';
-import { demoVehicles } from '../lib/demo';
+import { useSort } from '../lib/useSort';
 import type { Vehicle } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { fmtNum } from '../lib/status';
-import { PageHead, Badge, Modal, exportCsv } from '../components/ui';
-import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert } from '../components/Icons';
+import { PageHead, Badge, Modal, exportCsv, Th, CustomSelect } from '../components/ui';
+import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert, IconFile, IconUpload, IconTruck } from '../components/Icons';
 
 const blank = (): Vehicle => ({ id: '', registration_number: '', name_model: '', type: 'Van', max_load_capacity_kg: 500, odometer_km: 0, acquisition_cost: 0, status: 'Available', region: '' });
 
 export const VehiclesPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'fleet');
-  const { data, loading, reload, setData } = useData<Vehicle[]>('/vehicles', demoVehicles);
-  const rows = Array.isArray(data) ? data : demoVehicles;
+  const { data, loading, reload, setData } = useData<Vehicle[]>('/vehicles', []);
+  const rows = Array.isArray(data) ? data : [];
 
   const [q, setQ] = useState('');
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
   const [form, setForm] = useState<Vehicle | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const filtered = filterBy(rows, q, ['registration_number', 'name_model'])
     .filter((v) => !type || v.type === type)
     .filter((v) => !status || v.status === status);
+  const { sorted, toggle, arrow } = useSort<Vehicle>(filtered);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,16 +44,13 @@ export const VehiclesPage: React.FC = () => {
     } catch (e2: unknown) {
       const r = e2 as { response?: { data?: { detail?: string } } };
       if (r.response) { setErr(r.response.data?.detail || 'Save failed.'); return; }
-      // offline demo: mutate locally
-      setData(form.id ? rows.map((v) => (v.id === form.id ? form : v)) : [...rows, { ...form, id: `v${Date.now()}` }]);
-      setForm(null);
     }
   };
 
   const remove = async (v: Vehicle) => {
-    if (!confirm(`Remove ${v.registration_number}?`)) return;
     try { await client.delete(`/vehicles/${v.id}`); reload(); }
     catch { setData(rows.filter((x) => x.id !== v.id)); }
+    setDeleteTarget(null);
   };
 
   return (
@@ -64,25 +64,38 @@ export const VehiclesPage: React.FC = () => {
 
       <div className="filters">
         <div className="filter-group"><label>Search Reg. No.</label><input className="input" placeholder="e.g. VAN-05" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <div className="filter-group"><label>Type</label><select className="select" value={type} onChange={(e) => setType(e.target.value)}><option value="">All</option><option>Van</option><option>Truck</option><option>Mini</option></select></div>
-        <div className="filter-group"><label>Status</label><select className="select" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All</option><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option></select></div>
+        <div className="filter-group"><label>Type</label><div style={{width: 140}}><CustomSelect value={type} onChange={setType} options={[{value: '', label: 'All'}, 'Van', 'Truck', 'Mini']} placeholder="All" /></div></div>
+        <div className="filter-group"><label>Status</label><div style={{width: 140}}><CustomSelect value={status} onChange={setStatus} options={[{value: '', label: 'All'}, 'Available', 'On Trip', 'In Shop', 'Retired']} placeholder="All" /></div></div>
       </div>
 
       <div className="card">
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Reg. No.</th><th>Name / Model</th><th>Type</th><th>Capacity</th><th>Odometer</th><th>Acq. Cost</th><th>Status</th>{editable && <th></th>}</tr></thead>
-            <tbody>
-              {filtered.map((v) => (
+            <thead><tr>
+              <Th label="Reg. No." arrow={arrow('registration_number')} onClick={() => toggle('registration_number')} />
+              <Th label="Name / Model" arrow={arrow('name_model')} onClick={() => toggle('name_model')} />
+              <Th label="Type" arrow={arrow('type')} onClick={() => toggle('type')} />
+              <Th label="Capacity" arrow={arrow('max_load_capacity_kg')} onClick={() => toggle('max_load_capacity_kg')} />
+              <Th label="Odometer" arrow={arrow('odometer_km')} onClick={() => toggle('odometer_km')} />
+              <Th label="Acq. Cost" arrow={arrow('acquisition_cost')} onClick={() => toggle('acquisition_cost')} />
+              <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
+              {editable && <th></th>}
+            </tr></thead>
+            <tbody key={q} className="table-animated">
+              {sorted.map((v) => (
                 <tr key={v.id}>
-                  <td className="mono td-strong">{v.registration_number}</td>
+                  <td className="mono td-strong">
+                    <Link to={`/vehicles/${v.id}/passport`} className="link">
+                      {v.registration_number}
+                    </Link>
+                  </td>
                   <td>{v.name_model}</td>
                   <td>{v.type}</td>
                   <td>{fmtNum(v.max_load_capacity_kg)} kg</td>
                   <td>{fmtNum(v.odometer_km)} km</td>
                   <td>₹{fmtNum(v.acquisition_cost)}</td>
                   <td><Badge status={v.status} /></td>
-                  {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={() => { setErr(null); setForm(v); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={() => remove(v)}><IconTrash size={15} /></button></div></td>}
+                  {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setErr(null); setForm(v); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setDeleteTarget(v); }}><IconTrash size={15} /></button></div></td>}
                 </tr>
               ))}
               {!loading && filtered.length === 0 && <tr><td colSpan={editable ? 8 : 7} className="empty-row">No vehicles match your filters.</td></tr>}
@@ -94,14 +107,19 @@ export const VehiclesPage: React.FC = () => {
       <div className="rule-note"><IconAlert size={15} />Rule: Registration No. must be unique · Retired / In Shop vehicles are hidden from the Trip Dispatcher.</div>
 
       {form && (
-        <Modal title={form.id ? 'Edit Vehicle' : 'Register New Vehicle'} onClose={() => setForm(null)}
+        <Modal 
+          title={form.id ? 'Edit Vehicle' : 'Register New Vehicle'} 
+          splitIcon={<IconTruck size={32} />}
+          splitTitle="Vehicle Registry"
+          splitDesc="Configure vehicle details, load capacities, and required regional documentation."
+          onClose={() => setForm(null)}
           footer={<><button className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button><button className="btn btn-primary" form="veh-form">Save Vehicle</button></>}>
           <form id="veh-form" onSubmit={save}>
             {err && <div className="alert alert-danger">{err}</div>}
             <div className="field"><label>Registration Number (unique)</label><input className="input" required value={form.registration_number} onChange={(e) => setForm({ ...form, registration_number: e.target.value })} placeholder="VAN-05" /></div>
             <div className="field"><label>Name / Model</label><input className="input" required value={form.name_model} onChange={(e) => setForm({ ...form, name_model: e.target.value })} placeholder="Force Traveller" /></div>
             <div className="field-row">
-              <div className="field"><label>Type</label><select className="select" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}><option>Van</option><option>Truck</option><option>Mini</option></select></div>
+              <div className="field"><label>Type</label><CustomSelect value={form.type} onChange={(v) => setForm({ ...form, type: v as any })} options={['Van', 'Truck', 'Mini']} /></div>
               <div className="field"><label>Max Load (kg)</label><input className="input" type="number" min={1} required value={form.max_load_capacity_kg} onChange={(e) => setForm({ ...form, max_load_capacity_kg: +e.target.value })} /></div>
             </div>
             <div className="field-row">
@@ -109,10 +127,53 @@ export const VehiclesPage: React.FC = () => {
               <div className="field"><label>Acquisition Cost (₹)</label><input className="input" type="number" min={0} value={form.acquisition_cost} onChange={(e) => setForm({ ...form, acquisition_cost: +e.target.value })} /></div>
             </div>
             <div className="field-row">
-              <div className="field"><label>Status</label><select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option></select></div>
+              <div className="field"><label>Status</label><CustomSelect value={form.status} onChange={(v) => setForm({ ...form, status: v as any })} options={['Available', 'On Trip', 'In Shop', 'Retired']} /></div>
               <div className="field"><label>Region</label><input className="input" value={form.region || ''} onChange={(e) => setForm({ ...form, region: e.target.value })} placeholder="North" /></div>
             </div>
+
+            <div className="field">
+              <label>Documents (RC / Insurance / Permit)</label>
+              <div className="flex gap-8" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
+                {(form.documents || []).map((d) => (
+                  <span className="badge b-blue" key={d.id}><IconFile size={11} />{d.label}: {d.filename}</span>
+                ))}
+                {(!form.documents || form.documents.length === 0) && <span className="text-faint" style={{ fontSize: 12 }}>No documents uploaded yet.</span>}
+              </div>
+              <div className="field-row">
+                {(['RC', 'Insurance', 'Permit'] as const).map((label) => (
+                  <label key={label} className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+                    <IconUpload size={13} />{label}
+                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => {
+                      const file = e.target.files?.[0]; if (!file || !form) return;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const doc = { id: `doc${Date.now()}`, label, filename: file.name, dataUrl: String(reader.result), uploaded_at: new Date().toISOString() };
+                        setForm({ ...form, documents: [...(form.documents || []).filter((d) => d.label !== label), doc] });
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = '';
+                    }} />
+                  </label>
+                ))}
+              </div>
+            </div>
           </form>
+        </Modal>
+      )}
+      {deleteTarget && (
+        <Modal
+          title="Remove Vehicle"
+          variant="confirm"
+          icon={<IconTrash size={22} />}
+          onClose={() => setDeleteTarget(null)}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => remove(deleteTarget)}>Remove</button>
+            </>
+          }
+        >
+          Are you sure you want to remove <strong>{deleteTarget.registration_number}</strong>? This action cannot be undone.
         </Modal>
       )}
     </>

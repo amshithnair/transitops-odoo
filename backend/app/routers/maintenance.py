@@ -12,7 +12,7 @@ RBAC:
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -20,7 +20,7 @@ from app.models import (
     User, Vehicle, MaintenanceLog, UserRole,
     VehicleStatus, MaintenanceStatus,
 )
-from app.schemas import MaintenanceCreate, MaintenanceClose, MaintenanceResponse
+from app.schemas import MaintenanceCreate, MaintenanceClose, MaintenanceResponse, MaintenanceUpdate
 from app.deps import get_current_user, require_role
 
 router = APIRouter(prefix="/maintenance", tags=["Maintenance"])
@@ -30,14 +30,21 @@ router = APIRouter(prefix="/maintenance", tags=["Maintenance"])
     "",
     response_model=list[MaintenanceResponse],
     summary="List maintenance logs",
-    description="Returns all maintenance logs.",
+    description="Returns all maintenance logs. Optional filters by vehicle_id and status.",
     responses={401: {"description": "Not authenticated"}},
 )
 def list_maintenance(
+    vehicle_id: str | None = Query(None, description="Filter by vehicle ID"),
+    maint_status: MaintenanceStatus | None = Query(None, alias="status", description="Filter by status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(MaintenanceLog).order_by(MaintenanceLog.opened_at.desc()).all()
+    query = db.query(MaintenanceLog)
+    if vehicle_id:
+        query = query.filter(MaintenanceLog.vehicle_id == vehicle_id)
+    if maint_status:
+        query = query.filter(MaintenanceLog.status == maint_status)
+    return query.order_by(MaintenanceLog.opened_at.desc()).all()
 
 
 @router.get(
@@ -78,17 +85,17 @@ def create_maintenance(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.fleet_manager])),
 ):
-    vehicle = db.query(Vehicle).filter(Vehicle.id == payload.vehicle_id).first()
+    vehicle = db.query(Vehicle).filter(Vehicle.registration_number == payload.vehicle_label).first()
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
     log = MaintenanceLog(
-        vehicle_id=payload.vehicle_id,
+        vehicle_id=vehicle.id,
         service_type=payload.service_type,
         description=payload.description,
         cost=payload.cost,
         odometer_at_service_km=payload.odometer_at_service_km,
-        status=MaintenanceStatus.Open,
+        status=MaintenanceStatus.Active,
     )
     db.add(log)
 
@@ -100,22 +107,63 @@ def create_maintenance(
     return log
 
 
+@router.patch(
+    "/{log_id}",
+    response_model=MaintenanceResponse,
+    summary="Update maintenance log status",
+    responses={
+        401: {"description": "Not authenticated"},
+        404: {"description": "Maintenance log not found"},
+    },
+)
+def update_maintenance(
+    log_id: str,
+    payload: MaintenanceUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.fleet_manager])),
+):
+    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == log_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Maintenance log not found")
+
+    vehicle = db.query(Vehicle).filter(Vehicle.id == log.vehicle_id).first()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    if payload.status == MaintenanceStatus.Closed and log.status != MaintenanceStatus.Closed:
+        # Close logic
+        log.status = MaintenanceStatus.Closed
+        log.closed_at = datetime.utcnow()
+        if vehicle.status != VehicleStatus.Retired:
+            vehicle.status = VehicleStatus.Available
+    elif payload.status == MaintenanceStatus.Active and log.status != MaintenanceStatus.Active:
+        # Reopen logic
+        log.status = MaintenanceStatus.Active
+        log.closed_at = None
+        if vehicle.status != VehicleStatus.Retired:
+            vehicle.status = VehicleStatus.In_Shop
+
+    db.commit()
+    db.refresh(log)
+    return log
+
+
 @router.post(
     "/{log_id}/close",
     response_model=MaintenanceResponse,
-    summary="Close a maintenance record",
+    summary="Close maintenance record",
     description="Close an open maintenance record. "
-                "Rule 10: restores vehicle to 'Available' unless 'Retired'.",
+                "Rule 10: restores vehicle status to 'Available' (unless Retired).",
     responses={
         401: {"description": "Not authenticated"},
         403: {"description": "Insufficient role"},
-        404: {"description": "Maintenance log not found"},
-        409: {"description": "Maintenance log already closed"},
+        404: {"description": "Log not found"},
+        409: {"description": "Log already closed"},
     },
 )
 def close_maintenance(
     log_id: str,
-    payload: MaintenanceClose | None = None,
+    payload: MaintenanceClose,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([UserRole.fleet_manager])),
 ):
@@ -123,23 +171,19 @@ def close_maintenance(
     if not log:
         raise HTTPException(status_code=404, detail="Maintenance log not found")
     if log.status == MaintenanceStatus.Closed:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Maintenance record is already closed.",
-        )
+        raise HTTPException(status_code=409, detail="Maintenance log is already closed")
 
+    vehicle = db.query(Vehicle).filter(Vehicle.id == log.vehicle_id).first()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    log.cost = payload.cost if payload.cost is not None else log.cost
+    log.description = payload.description if payload.description is not None else log.description
     log.status = MaintenanceStatus.Closed
     log.closed_at = datetime.utcnow()
 
-    if payload:
-        if payload.cost is not None:
-            log.cost = payload.cost
-        if payload.description is not None:
-            log.description = payload.description
-
-    # Rule 10: Closing maintenance restores vehicle to Available unless Retired.
-    vehicle = db.query(Vehicle).filter(Vehicle.id == log.vehicle_id).first()
-    if vehicle and vehicle.status != VehicleStatus.Retired:
+    # Rule 10: Closing restores vehicle to Available, unless Retired
+    if vehicle.status != VehicleStatus.Retired:
         vehicle.status = VehicleStatus.Available
 
     db.commit()
