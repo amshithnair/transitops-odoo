@@ -6,8 +6,8 @@ import { useSort } from '../lib/useSort';
 import type { Driver } from '../lib/types';
 import { canEdit } from '../lib/roles';
 import { safetyColor, expiryInfo, fmtDate } from '../lib/status';
-import { PageHead, Badge, ColorBadge, Modal, exportCsv, Th } from '../components/ui';
-import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert } from '../components/Icons';
+import { PageHead, Badge, ColorBadge, Modal, exportCsv, Th, CustomSelect } from '../components/ui';
+import { IconPlus, IconDownload, IconEdit, IconTrash, IconAlert, IconUsers } from '../components/Icons';
 
 const DRIVER_STATUSES = ['Available', 'On Trip', 'Off Duty', 'Suspended'];
 const blank = (): Driver => ({ id: '', name: '', license_number: '', license_category: 'LMV', license_expiry: '', contact_number: '', safety_score: 80, trip_completion_pct: 100, status: 'Available' });
@@ -21,6 +21,7 @@ export const DriversPage: React.FC = () => {
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState<Driver | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Driver | null>(null);
   const [override, setOverride] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -50,8 +51,8 @@ export const DriversPage: React.FC = () => {
   };
 
   const remove = async (d: Driver) => {
-    if (!confirm(`Remove driver ${d.name}?`)) return;
-    try { await client.delete(`/drivers/${d.id}`); reload(); } catch {}
+    try { await client.delete(`/drivers/${d.id}`); reload(); } catch { setData(rows.filter((x) => x.id !== d.id)); }
+    setDeleteTarget(null);
   };
 
   const selDriver = rows.find((d) => d.id === selected);
@@ -83,7 +84,7 @@ export const DriversPage: React.FC = () => {
               <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
               {editable && <th></th>}
             </tr></thead>
-            <tbody>
+            <tbody key={q} className="table-animated">
               {sorted.map((d) => {
                 const exp = expiryInfo(d.license_expiry);
                 return (
@@ -96,7 +97,7 @@ export const DriversPage: React.FC = () => {
                     <td>{d.trip_completion_pct ?? '—'}%</td>
                     <td><ColorBadge color={safetyColor(d.safety_score)}>{d.safety_score}</ColorBadge></td>
                     <td><Badge status={d.status} /></td>
-                    {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setErr(null); setOverride(false); setForm(d); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={(e) => { e.stopPropagation(); remove(d); }}><IconTrash size={15} /></button></div></td>}
+                    {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setErr(null); setOverride(false); setForm(d); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setDeleteTarget(d); }}><IconTrash size={15} /></button></div></td>}
                   </tr>
                 );
               })}
@@ -119,14 +120,19 @@ export const DriversPage: React.FC = () => {
       <div className="rule-note"><IconAlert size={15} />Rule: Expired license or Suspended status → driver is blocked from trip assignment.</div>
 
       {form && (
-        <Modal title={form.id ? 'Edit Driver' : 'Add Driver'} onClose={() => setForm(null)}
+        <Modal 
+          title={form.id ? 'Edit Driver' : 'Register New Driver'} 
+          splitIcon={<IconUsers size={32} />}
+          splitTitle="Driver Profile"
+          splitDesc="Manage driver licensing, safety scores, and operational status."
+          onClose={() => setForm(null)}
           footer={<><button className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button><button className="btn btn-primary" form="drv-form">Save Driver</button></>}>
           <form id="drv-form" onSubmit={save}>
             {err && <div className="alert alert-danger">{err}</div>}
             <div className="field"><label>Name</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
             <div className="field-row">
               <div className="field"><label>License Number</label><input className="input" required value={form.license_number} onChange={(e) => setForm({ ...form, license_number: e.target.value })} placeholder="DL-88213" /></div>
-              <div className="field"><label>Category</label><select className="select" value={form.license_category} onChange={(e) => setForm({ ...form, license_category: e.target.value })}><option>LMV</option><option>HMV</option><option>MGV</option></select></div>
+              <div className="field"><label>Category</label><CustomSelect value={form.license_category} onChange={(v) => setForm({ ...form, license_category: v })} options={['LMV', 'HMV', 'MGV']} /></div>
             </div>
             <div className="field-row">
               <div className="field"><label>License Expiry</label><input className="input" type="date" required value={form.license_expiry} onChange={(e) => setForm({ ...form, license_expiry: e.target.value })} /></div>
@@ -134,10 +140,26 @@ export const DriversPage: React.FC = () => {
             </div>
             <div className="field-row">
               <div className="field"><label>Safety Score</label><input className="input" type="number" min={0} max={100} value={form.safety_score} onChange={(e) => setForm({ ...form, safety_score: +e.target.value })} /></div>
-              <div className="field"><label>Status</label><select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{DRIVER_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></div>
+              <div className="field"><label>Status</label><CustomSelect value={form.status} onChange={(v) => setForm({ ...form, status: v })} options={DRIVER_STATUSES} /></div>
             </div>
             <label className="checkbox"><input type="checkbox" checked={override} onChange={(e) => setOverride(e.target.checked)} />Override — allow save with expired license</label>
           </form>
+        </Modal>
+      )}
+      {deleteTarget && (
+        <Modal
+          title="Remove Driver"
+          variant="confirm"
+          icon={<IconTrash size={22} />}
+          onClose={() => setDeleteTarget(null)}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => remove(deleteTarget)}>Remove</button>
+            </>
+          }
+        >
+          Are you sure you want to remove <strong>{deleteTarget.name}</strong>? This action cannot be undone.
         </Modal>
       )}
     </>
