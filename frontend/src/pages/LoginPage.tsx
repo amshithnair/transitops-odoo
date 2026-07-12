@@ -6,10 +6,10 @@ import { ALL_ROLES, ROLE_LABELS, ROLE_COLORS, ROLE_SCOPE } from '../lib/roles';
 
 const DEMO: Record<UserRole, { email: string; pass: string; name: string }> = {
   superadmin:        { email: 'admin@transitops.com',    pass: 'admin123',   name: 'Root Admin' },
-  fleet_manager:     { email: 'fleet@transitops.com',   pass: 'fleet123',   name: 'Maya Fleet' },
-  driver:            { email: 'dispatch@transitops.com', pass: 'driver123',  name: 'Raven K.' },
-  safety_officer:    { email: 'safety@transitops.com',   pass: 'safety123',  name: 'Sara Vale' },
-  financial_analyst: { email: 'finance@transitops.com',  pass: 'finance123', name: 'Dev Anand' },
+  fleet_manager:     { email: 'fleet@transitops.com',   pass: 'Fleet@123',   name: 'Alice Fleet' },
+  driver:            { email: 'driver@transitops.com', pass: 'Driver@123',  name: 'Bob Driver' },
+  safety_officer:    { email: 'safety@transitops.com',   pass: 'Safety@123',  name: 'Carol Safety' },
+  financial_analyst: { email: 'finance@transitops.com',  pass: 'Finance@123', name: 'Dave Finance' },
 };
 
 const MAX_ATTEMPTS = 5;

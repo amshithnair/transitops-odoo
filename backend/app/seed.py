@@ -15,25 +15,25 @@ SEED_USERS = [
     {
         "name": "Alice Fleet",
         "email": "fleet@transitops.com",
-        "password": "fleet123",
+        "password": "Fleet@123",
         "role": UserRole.fleet_manager,
     },
     {
         "name": "Bob Driver",
         "email": "driver@transitops.com",
-        "password": "driver123",
+        "password": "Driver@123",
         "role": UserRole.driver,
     },
     {
         "name": "Carol Safety",
         "email": "safety@transitops.com",
-        "password": "safety123",
+        "password": "Safety@123",
         "role": UserRole.safety_officer,
     },
     {
         "name": "Dave Finance",
         "email": "finance@transitops.com",
-        "password": "finance123",
+        "password": "Finance@123",
         "role": UserRole.financial_analyst,
     },
 ]

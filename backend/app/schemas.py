@@ -5,7 +5,7 @@ All request/response models with Field examples for Swagger rendering.
 """
 
 from datetime import datetime, date as date_type
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, Field, EmailStr
 
@@ -18,15 +18,15 @@ from app.models import (
 # ──────────────────────────── Auth ────────────────────────────
 
 class UserRegister(BaseModel):
-    name: str = Field(..., min_length=1, examples=["Alice Fleet"])
-    email: EmailStr = Field(..., examples=["alice@transitops.com"])
-    password: str = Field(..., min_length=6, examples=["SecureP@ss1"])
-    role: UserRole = Field(..., examples=[UserRole.fleet_manager])
+    name: str = Field(..., min_length=2)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    role: UserRole = UserRole.driver
 
 
 class UserLogin(BaseModel):
-    email: EmailStr = Field(..., examples=["alice@transitops.com"])
-    password: str = Field(..., examples=["SecureP@ss1"])
+    email: EmailStr
+    password: str
 
 
 class Token(BaseModel):
@@ -41,8 +41,48 @@ class UserResponse(BaseModel):
     role: UserRole
     is_active: bool
     created_at: datetime
+    created_by: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+# Password reset flow schemas
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr = Field(..., examples=["user@example.com"])
+
+
+class VerifyOTPRequest(BaseModel):
+    email: EmailStr = Field(..., examples=["user@example.com"])
+    otp: str = Field(..., min_length=6, max_length=6, examples=["123456"])
+
+
+class VerifyOTPResponse(BaseModel):
+    reset_code: str
+    expires_in: int = Field(600, description="Reset code validity in seconds")
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr = Field(..., examples=["user@example.com"])
+    reset_code: str = Field(..., examples=["temp-code-xyz"])
+    new_password: str = Field(..., min_length=8, examples=["NewPass@123"])
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+# Fleet manager user creation
+class UserCreateByManager(BaseModel):
+    name: str = Field(..., min_length=1, examples=["Demo Driver 1"])
+    email: EmailStr = Field(..., examples=["demo-driver-1@transitops.local"])
+    password: str = Field(..., min_length=8, examples=["Demo@123"])
+    role: UserRole = Field(..., examples=[UserRole.driver])
 
 
 # ──────────────────────────── Vehicle ────────────────────────────
@@ -123,24 +163,21 @@ class DriverResponse(BaseModel):
 # ──────────────────────────── Trip ────────────────────────────
 
 class TripCreate(BaseModel):
-    source: str = Field(..., examples=["Warehouse A"])
-    destination: str = Field(..., examples=["Distribution Center B"])
+    source: str = Field(..., examples=["Warehouse A, Ahmedabad"])
+    destination: str = Field(..., examples=["Store B, Mumbai"])
     vehicle_id: str = Field(..., examples=["uuid-of-vehicle"])
     driver_id: str = Field(..., examples=["uuid-of-driver"])
-    cargo_weight_kg: float = Field(..., gt=0, examples=[1800.0])
+    cargo_weight_kg: float = Field(..., gt=0, examples=[450.0])
     planned_distance_km: float = Field(..., gt=0, examples=[350.0])
-    revenue: float = Field(0.0, ge=0, examples=[2500.0])
+    revenue: float = Field(0.0, ge=0, examples=[5000.0])
+    dispatch: bool = False
 
 
 class TripComplete(BaseModel):
-    """Payload for completing a trip — design decisions #1 and #2."""
-    actual_distance_km: float = Field(..., gt=0, examples=[345.0])
-    fuel_consumed_liters: float = Field(..., gt=0, examples=[42.5])
-    final_odometer_km: Optional[float] = Field(
-        None, ge=0, examples=[15345.0],
-        description="If provided, sets vehicle odometer to this value. "
-                    "Otherwise, odometer is incremented by actual_distance_km."
-    )
+    """Payload for completing a trip."""
+    final_odometer: float = Field(..., gt=0, examples=[355.0])
+    fuel_consumed: float = Field(..., gt=0, examples=[35.5])
+    revenue: float = Field(0.0, ge=0)
 
 
 class TripResponse(BaseModel):
@@ -167,11 +204,14 @@ class TripResponse(BaseModel):
 # ──────────────────────────── Maintenance ────────────────────────────
 
 class MaintenanceCreate(BaseModel):
-    vehicle_id: str = Field(..., examples=["uuid-of-vehicle"])
+    vehicle_label: str = Field(..., examples=["KA-01-AB-1234"])
     service_type: str = Field(..., examples=["Oil Change"])
-    description: Optional[str] = Field(None, examples=["Routine 10k km oil change"])
-    cost: float = Field(0.0, ge=0, examples=[250.0])
-    odometer_at_service_km: Optional[float] = Field(None, ge=0, examples=[15000.0])
+    description: Optional[str] = Field(None, examples=["Routine oil and filter replacement"])
+    cost: float = Field(0.0, ge=0, examples=[2500.0])
+    odometer_at_service_km: Optional[float] = Field(None, ge=0, examples=[45000.0])
+
+class MaintenanceUpdate(BaseModel):
+    status: MaintenanceStatus
 
 
 class MaintenanceClose(BaseModel):
@@ -281,3 +321,90 @@ class VehicleROIReport(BaseModel):
     total_cost: float
     acquisition_cost: float
     roi_pct: Optional[float]
+
+
+# ──────────────────────────── Digital Vehicle Passport ────────────────────────────
+
+class PassportTripSummary(BaseModel):
+    id: str
+    source: str
+    destination: str
+    distance_km: Optional[float]
+    revenue: float
+    status: str
+    completed_at: Optional[datetime]
+
+
+class PassportMaintenanceSummary(BaseModel):
+    id: str
+    service_type: str
+    cost: float
+    opened_at: datetime
+    closed_at: Optional[datetime]
+    status: str
+
+
+class PassportFuelSummary(BaseModel):
+    id: str
+    liters: float
+    cost: float
+    date: date_type
+    odometer_km: Optional[float]
+
+
+class PassportExpenseSummary(BaseModel):
+    id: str
+    category: str
+    amount: float
+    date: date_type
+    notes: Optional[str]
+
+
+class ComplianceEvent(BaseModel):
+    timestamp: datetime
+    event: str
+    status_before: str
+    status_after: str
+
+
+class PassportSummaryStats(BaseModel):
+    total_trips: int
+    total_revenue: float
+    total_maintenance_cost: float
+    total_fuel_cost: float
+    total_expenses: float
+    total_operational_cost: float
+    average_fuel_efficiency_km_per_liter: Optional[float]
+
+
+class VehiclePassportResponse(BaseModel):
+    vehicle: VehicleResponse
+    trip_history: List[PassportTripSummary]
+    maintenance_history: List[PassportMaintenanceSummary]
+    fuel_logs: List[PassportFuelSummary]
+    expenses: List[PassportExpenseSummary]
+    compliance_timeline: List[ComplianceEvent]
+    summary: PassportSummaryStats
+
+
+# ──────────────────────────── Predictive Maintenance ────────────────────────────
+
+class ForecastItem(BaseModel):
+    predicted_date: date_type
+    service_type: str
+    reason: str
+    urgency: str
+    estimated_cost: Optional[float] = None
+
+
+class LastMaintenanceInfo(BaseModel):
+    service_type: str
+    closed_at: Optional[datetime]
+    odometer_km: Optional[float]
+
+
+class MaintenanceForecastResponse(BaseModel):
+    vehicle_id: str
+    next_maintenance: Optional[ForecastItem]
+    upcoming_services: List[ForecastItem]
+    last_maintenance: Optional[LastMaintenanceInfo]

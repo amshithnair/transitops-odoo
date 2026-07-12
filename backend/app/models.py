@@ -48,7 +48,7 @@ class TripStatus(str, enum.Enum):
 
 
 class MaintenanceStatus(str, enum.Enum):
-    Open = "Open"
+    Active = "Active"
     Closed = "Closed"
 
 
@@ -77,6 +77,16 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Password reset flow
+    reset_token: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    reset_token_expiry: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reset_requested_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # Multi-user creation by fleet_manager
+    created_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
 
     # Relationships
     trips_created: Mapped[list["Trip"]] = relationship(back_populates="creator")
@@ -175,7 +185,7 @@ class MaintenanceLog(Base):
     cost: Mapped[float] = mapped_column(Float, default=0.0)
     odometer_at_service_km: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[MaintenanceStatus] = mapped_column(
-        Enum(MaintenanceStatus), default=MaintenanceStatus.Open
+        Enum(MaintenanceStatus), default=MaintenanceStatus.Active
     )
     opened_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
