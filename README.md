@@ -1,3 +1,3 @@
 # TransitOps
 
-> Fleet operations platform — full content coming in Phase 7.
+> Fleet operations platform — full content coming.
