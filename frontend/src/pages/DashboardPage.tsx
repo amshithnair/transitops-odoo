@@ -4,9 +4,6 @@ import { Link } from 'react-router-dom';
 import { useData } from '../lib/useData';
 import { DEFAULT_KPIS } from '../lib/types';
 import type { KPIs, Trip, Vehicle } from '../lib/types';
-import { PageHead, Kpi, StatBars, Badge } from '../components/ui';
-import { demoKpis, demoTrips, demoStatusBreakdown } from '../lib/demo';
-import type { KPIs, Trip } from '../lib/types';
 import { PageHead, Kpi, StatBars, Badge, CustomSelect } from '../components/ui';
 import { IconTruck, IconRoute, IconUsers, IconChart, IconWrench, IconClock } from '../components/Icons';
 
@@ -58,7 +55,8 @@ export const DashboardPage: React.FC = () => {
     <>
       <PageHead title={roleTitle} sub={`Welcome back, ${user?.name || 'User'}`} />
 
-      <div className="filters">
+      {role === 'fleet_manager' && (
+        <div className="filters">
         <div className="filter-group">
           <label>Vehicle Type</label>
           <div style={{ width: '140px' }}>
@@ -76,6 +74,7 @@ export const DashboardPage: React.FC = () => {
           <div style={{ width: '140px' }}>
             <CustomSelect value={region} onChange={setRegion} options={[{value: '', label: 'All'}, 'North', 'South', 'East', 'West']} placeholder="All" />
           </div>
+        </div>
         </div>
       )}
 
@@ -123,7 +122,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {role === 'safety_officer' && (
+        {['fleet_manager', 'driver', 'safety_officer'].includes(role) && (
           <div className="card card-pad" style={{ gridColumn: 'span 2' }}>
             <h3 style={{ marginBottom: 16 }}>Compliance Checklists & Fleet Passports</h3>
             <div className="table-wrap">
