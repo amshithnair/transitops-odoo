@@ -1,453 +1,190 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../lib/useData';
+import { demoTrips, demoVehicles, demoDrivers } from '../lib/demo';
+import type { Trip, Vehicle, Driver } from '../lib/types';
+import { canEdit } from '../lib/roles';
+import { expiryInfo } from '../lib/status';
+import { PageHead, Badge, Modal } from '../components/ui';
+import { IconAlert, IconCheck, IconMap, IconClock } from '../components/Icons';
 
-interface Trip {
-  id: string;
-  source: string;
-  destination: string;
-  vehicle_id: string;
-  driver_id: string;
-  cargo_weight_kg: number;
-  planned_distance_km: number;
-  actual_distance_km: number | null;
-  fuel_consumed_liters: number | null;
-  revenue: number;
-  status: string;
-  created_by: string;
-  dispatched_at: string | null;
-  completed_at: string | null;
-  cancelled_at: string | null;
-  created_at: string;
-}
-
-interface Vehicle {
-  id: string;
-  registration_number: string;
-  name_model: string;
-  status: string;
-}
-
-interface Driver {
-  id: string;
-  name: string;
-  status: string;
-}
+const LIFECYCLE = ['Draft', 'Dispatched', 'Completed', 'Cancelled'];
 
 export const TripsPage: React.FC = () => {
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const { hasRole, user } = useAuth();
-  const isManager = hasRole(['fleet_manager']);
-  const isDriver = hasRole(['driver']);
-  const canCreate = isManager || isDriver;
+  const { user } = useAuth();
+  const editable = canEdit(user?.role, 'trips');
 
-  // Modals state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showCompleteModal, setShowCompleteModal] = useState(false);
-  const [activeTripId, setActiveTripId] = useState<string | null>(null);
+  const { data: trips, setData: setTrips } = useData<Trip[]>('/trips', demoTrips);
+  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
+  const { data: drivers, setData: setDrivers } = useData<Driver[]>('/drivers', demoDrivers);
+  const tripRows = Array.isArray(trips) ? trips : demoTrips;
+  const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
+  const drvRows = Array.isArray(drivers) ? drivers : demoDrivers;
 
-  // Create Form fields
+  // Dispatch-eligible pools (business rules): vehicles Available only; drivers Available + not expired
+  const availVehicles = vehRows.filter((v) => v.status === 'Available');
+  const availDrivers = drvRows.filter((d) => d.status === 'Available' && !expiryInfo(d.license_expiry).expired);
+
   const [source, setSource] = useState('');
-  const [destination, setDestination] = useState('');
-  const [selectedVehicle, setSelectedVehicle] = useState('');
-  const [selectedDriver, setSelectedDriver] = useState('');
-  const [cargoWeight, setCargoWeight] = useState(0);
-  const [plannedDistance, setPlannedDistance] = useState(0);
-  const [revenue, setRevenue] = useState(0);
+  const [dest, setDest] = useState('');
+  const [vehId, setVehId] = useState('');
+  const [drvId, setDrvId] = useState('');
+  const [cargo, setCargo] = useState<number>(0);
+  const [dist, setDist] = useState<number>(0);
+  const [completing, setCompleting] = useState<Trip | null>(null);
+  const [finalOdo, setFinalOdo] = useState<number>(0);
+  const [fuel, setFuel] = useState<number>(0);
 
-  // Complete Form fields
-  const [actualDistance, setActualDistance] = useState(0);
-  const [fuelConsumed, setFuelConsumed] = useState(0);
-  const [finalOdometer, setFinalOdometer] = useState<string>('');
+  const veh = vehRows.find((v) => v.id === vehId);
+  const drv = drvRows.find((d) => d.id === drvId);
+  const cap = veh?.max_load_capacity_kg ?? 0;
+  const over = veh ? cargo - cap : 0;
+  const capOk = veh ? cargo <= cap && cargo > 0 : false;
+  const canDispatch = editable && !!source && !!dest && !!veh && !!drv && capOk;
+  const gaugePct = cap ? Math.min((cargo / cap) * 100, 100) : 0;
+  const gaugeColor = over > 0 ? 'var(--red)' : gaugePct > 85 ? 'var(--amber)' : 'var(--green)';
 
-  const [formError, setFormError] = useState<string | null>(null);
+  const reset = () => { setSource(''); setDest(''); setVehId(''); setDrvId(''); setCargo(0); setDist(0); };
 
-  const fetchTrips = async () => {
-    setLoading(true);
-    try {
-      const tripsRes = await client.get('/trips');
-      setTrips(tripsRes.data);
-    } catch (err) {
-      setError('Failed to fetch trips.');
-    } finally {
-      setLoading(false);
-    }
+  const dispatch = async () => {
+    if (!canDispatch || !veh || !drv) return;
+    const code = `TR${String(tripRows.length + 1).padStart(3, '0')}`;
+    const trip: Trip = { id: `t${Date.now()}`, code, source, destination: dest, vehicle_id: veh.id, vehicle_label: veh.registration_number, driver_id: drv.id, driver_label: drv.name, cargo_weight_kg: cargo, planned_distance_km: dist, status: 'Dispatched', eta: `${Math.round(dist * 2)} min` };
+    // cascade: vehicle + driver -> On Trip
+    setTrips([trip, ...tripRows]);
+    setVehicles(vehRows.map((v) => (v.id === veh.id ? { ...v, status: 'On Trip' } : v)));
+    setDrivers(drvRows.map((d) => (d.id === drv.id ? { ...d, status: 'On Trip' } : d)));
+    reset();
+    try { await client.post('/trips', { source, destination: dest, vehicle_id: veh.id, driver_id: drv.id, cargo_weight_kg: cargo, planned_distance_km: dist, dispatch: true }); } catch { /* offline demo */ }
   };
 
-  const fetchOptions = async () => {
-    try {
-      const vehRes = await client.get('/vehicles');
-      setVehicles(vehRes.data);
-      const driRes = await client.get('/drivers');
-      setDrivers(driRes.data);
-    } catch (e) {
-      // Fail silently for options
-    }
+  const cancelTrip = async (t: Trip) => {
+    setTrips(tripRows.map((x) => (x.id === t.id ? { ...x, status: 'Cancelled' } : x)));
+    setVehicles(vehRows.map((v) => (v.registration_number === t.vehicle_label ? { ...v, status: 'Available' } : v)));
+    setDrivers(drvRows.map((d) => (d.name === t.driver_label ? { ...d, status: 'Available' } : d)));
+    try { await client.post(`/trips/${t.id}/cancel`); } catch { /* offline demo */ }
   };
 
-  useEffect(() => {
-    fetchTrips();
-    fetchOptions();
-  }, []);
-
-  const handleCreateOpen = () => {
-    setSource('');
-    setDestination('');
-    setSelectedVehicle('');
-    setSelectedDriver('');
-    setCargoWeight(0);
-    setPlannedDistance(0);
-    setRevenue(0);
-    setFormError(null);
-    setShowCreateModal(true);
-  };
-
-  const handleCreateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    const payload = {
-      source,
-      destination,
-      vehicle_id: selectedVehicle,
-      driver_id: selectedDriver,
-      cargo_weight_kg: cargoWeight,
-      planned_distance_km: plannedDistance,
-      revenue,
-    };
-
-    try {
-      await client.post('/trips', payload);
-      setShowCreateModal(false);
-      fetchTrips();
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || 'Failed to create trip draft.');
-    }
-  };
-
-  const handleDispatch = async (id: string) => {
-    try {
-      await client.post(`/trips/${id}/dispatch`);
-      fetchTrips();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Dispatch failed.');
-    }
-  };
-
-  const handleCompleteOpen = (id: string, plannedDist: number) => {
-    setActiveTripId(id);
-    setActualDistance(plannedDist);
-    setFuelConsumed(0);
-    setFinalOdometer('');
-    setFormError(null);
-    setShowCompleteModal(true);
-  };
-
-  const handleCompleteSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    const payload: any = {
-      actual_distance_km: actualDistance,
-      fuel_consumed_liters: fuelConsumed,
-    };
-    if (finalOdometer) {
-      payload.final_odometer_km = Number(finalOdometer);
-    }
-
-    try {
-      await client.post(`/trips/${activeTripId}/complete`, payload);
-      setShowCompleteModal(false);
-      fetchTrips();
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || 'Failed to complete trip.');
-    }
-  };
-
-  const handleCancel = async (id: string) => {
-    if (!window.confirm('Are you sure you want to cancel this trip?')) return;
-    try {
-      await client.post(`/trips/${id}/cancel`);
-      fetchTrips();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Cancellation failed.');
-    }
+  const completeTrip = async () => {
+    if (!completing) return;
+    const t = completing;
+    // cascade: odometer -> fuel log -> expense -> vehicle & driver Available -> Completed
+    setTrips(tripRows.map((x) => (x.id === t.id ? { ...x, status: 'Completed', final_odometer: finalOdo, fuel_consumed: fuel, eta: null } : x)));
+    setVehicles(vehRows.map((v) => (v.registration_number === t.vehicle_label ? { ...v, status: 'Available', odometer_km: finalOdo || v.odometer_km } : v)));
+    setDrivers(drvRows.map((d) => (d.name === t.driver_label ? { ...d, status: 'Available' } : d)));
+    setCompleting(null); setFinalOdo(0); setFuel(0);
+    try { await client.post(`/trips/${t.id}/complete`, { final_odometer: finalOdo, fuel_consumed: fuel }); } catch { /* offline demo */ }
   };
 
   return (
-    <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
-        <h2>Trips Management</h2>
-        {canCreate && (
-          <button onClick={handleCreateOpen} className="btn btn-primary">
-            + Plan Trip Draft
-          </button>
-        )}
+    <>
+      <PageHead title="Trip Dispatcher" sub="Create, dispatch and monitor trips" />
+
+      {!editable && <div className="view-note"><IconAlert size={15} />You have view access to Trips — contact a Dispatcher to modify.</div>}
+
+      <div className="two-col">
+        {/* LEFT: lifecycle + create form */}
+        <div>
+          <div className="card card-pad mb-16">
+            <div className="klabel mb-16">Trip Lifecycle</div>
+            <div className="stepper">
+              {LIFECYCLE.map((s, i) => (
+                <React.Fragment key={s}>
+                  <div className={`step ${i === 0 ? 'done' : i === 1 ? 'current' : ''}`}>
+                    <span className="step-dot">{i === 0 ? <IconCheck size={12} /> : i + 1}</span>
+                    <span className="step-label">{s}</span>
+                  </div>
+                  {i < LIFECYCLE.length - 1 && <span className={`step-line ${i === 0 ? 'done' : ''}`} />}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          <div className="card card-pad">
+            <div className="card-title mb-20">Create Trip</div>
+            <div className="field-row">
+              <div className="field"><label>Source</label><input className="input" value={source} onChange={(e) => setSource(e.target.value)} placeholder="Gandhinagar Depot" disabled={!editable} /></div>
+              <div className="field"><label>Destination</label><input className="input" value={dest} onChange={(e) => setDest(e.target.value)} placeholder="Ahmedabad Hub" disabled={!editable} /></div>
+            </div>
+            <div className="field-row">
+              <div className="field"><label>Vehicle (Available only)</label>
+                <select className="select" value={vehId} onChange={(e) => setVehId(e.target.value)} disabled={!editable}>
+                  <option value="">Select vehicle…</option>
+                  {availVehicles.map((v) => <option key={v.id} value={v.id}>{v.registration_number} · {v.max_load_capacity_kg}kg</option>)}
+                </select>
+              </div>
+              <div className="field"><label>Driver (Available only)</label>
+                <select className="select" value={drvId} onChange={(e) => setDrvId(e.target.value)} disabled={!editable}>
+                  <option value="">Select driver…</option>
+                  {availDrivers.map((d) => <option key={d.id} value={d.id}>{d.name} · safety {d.safety_score}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field"><label>Cargo Weight (kg)</label><input className="input" type="number" min={0} value={cargo || ''} onChange={(e) => setCargo(+e.target.value)} placeholder="450" disabled={!editable} /></div>
+              <div className="field"><label>Planned Distance (km)</label><input className="input" type="number" min={0} value={dist || ''} onChange={(e) => setDist(+e.target.value)} placeholder="32" disabled={!editable} /></div>
+            </div>
+
+            {/* Live capacity validation block + gauge */}
+            {veh && cargo > 0 && (
+              <div className={`valid-block ${capOk ? 'valid-ok' : 'valid-err'}`}>
+                <div className="vline"><span>Vehicle Capacity</span><b>{cap} kg</b></div>
+                <div className="vline"><span>Cargo Weight</span><b>{cargo} kg</b></div>
+                <div className="gauge"><div className="gauge-fill" style={{ width: `${gaugePct}%`, background: gaugeColor }} /></div>
+                <div className="vresult">
+                  {capOk
+                    ? <><IconCheck size={14} />Within capacity — dispatch allowed{drv && <span className="text-muted" style={{ fontWeight: 400 }}> · {veh.registration_number} → On Trip, {drv.name} → On Trip</span>}</>
+                    : <><IconAlert size={14} />Capacity exceeded by {over} kg — dispatch blocked</>}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-12 mt-8">
+              <button className="btn btn-primary" disabled={!canDispatch} onClick={dispatch}>Dispatch Trip</button>
+              <button className="btn btn-ghost" onClick={reset}>Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: live board */}
+        <div className="card card-pad">
+          <div className="card-title mb-20">Live Board</div>
+          {tripRows.map((t) => (
+            <div className="live-card" key={t.id}>
+              <div className="live-top">
+                <span className="live-id">{t.code || t.id}</span>
+                <span className="live-meta">{t.vehicle_label || 'Unassigned'}{t.driver_label ? ` · ${t.driver_label}` : ''}</span>
+              </div>
+              <div className="live-route"><IconMap size={13} style={{ verticalAlign: -2, marginRight: 6, opacity: 0.6 }} />{t.source} → {t.destination}</div>
+              <div className="live-foot">
+                <Badge status={t.status} />
+                <span className="live-meta">{t.eta ? <><IconClock size={12} style={{ verticalAlign: -2 }} /> {t.eta}</> : (t.note || '—')}</span>
+              </div>
+              {editable && t.status === 'Dispatched' && (
+                <div className="flex gap-8 mt-8">
+                  <button className="btn btn-success btn-sm" onClick={() => { setCompleting(t); setFinalOdo(0); setFuel(0); }}>Complete</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => cancelTrip(t)}>Cancel Trip</button>
+                </div>
+              )}
+            </div>
+          ))}
+          <div className="rule-note" style={{ marginTop: 16 }}><IconAlert size={14} />On Complete: odometer → fuel log → expense → Vehicle &amp; Driver set Available.</div>
+        </div>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      {loading ? (
-        <p>Loading trips...</p>
-      ) : (
-        <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Route</th>
-                <th>Vehicle ID</th>
-                <th>Driver ID</th>
-                <th>Cargo Weight</th>
-                <th>Planned Dist</th>
-                <th>Revenue</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {trips.map((t) => (
-                <tr key={t.id}>
-                  <td>
-                    <strong>{t.source}</strong> → <strong>{t.destination}</strong>
-                  </td>
-                  <td>
-                    {vehicles.find(v => v.id === t.vehicle_id)?.registration_number || t.vehicle_id.slice(0, 8)}
-                  </td>
-                  <td>
-                    {drivers.find(d => d.id === t.driver_id)?.name || t.driver_id.slice(0, 8)}
-                  </td>
-                  <td>{t.cargo_weight_kg.toLocaleString()} kg</td>
-                  <td>{t.planned_distance_km} km</td>
-                  <td>${t.revenue.toLocaleString()}</td>
-                  <td>
-                    <span className={`status-badge status-${t.status.toLowerCase().replace(' ', '-')}`}>
-                      {t.status}
-                    </span>
-                  </td>
-                  <td>
-                    {t.status === 'Draft' && isManager && (
-                      <button onClick={() => handleDispatch(t.id)} className="btn btn-success btn-sm" style={{ marginRight: '5px' }}>
-                        Dispatch
-                      </button>
-                    )}
-                    {t.status === 'Dispatched' && (isManager || isDriver) && (
-                      <button onClick={() => handleCompleteOpen(t.id, t.planned_distance_km)} className="btn btn-primary btn-sm" style={{ marginRight: '5px' }}>
-                        Complete
-                      </button>
-                    )}
-                    {(t.status === 'Draft' || t.status === 'Dispatched') && isManager && (
-                      <button onClick={() => handleCancel(t.id)} className="btn btn-danger btn-sm">
-                        Cancel
-                      </button>
-                    )}
-                    {t.status === 'Completed' && (
-                      <span className="text-muted" style={{ fontSize: '12px' }}>Actual: {t.actual_distance_km}km / {t.fuel_consumed_liters}L</span>
-                    )}
-                    {t.status === 'Cancelled' && (
-                      <span className="text-muted" style={{ fontSize: '12px' }}>Cancelled</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {trips.length === 0 && (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: 'center' }} className="text-muted">
-                    No trips recorded.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Create Modal */}
-      {showCreateModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>Plan Trip (Draft)</h3>
-            {formError && <div className="alert alert-danger">{formError}</div>}
-            
-            <form onSubmit={handleCreateSubmit}>
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Source / Origin</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={source}
-                    onChange={(e) => setSource(e.target.value)}
-                    required
-                    placeholder="Warehouse A"
-                  />
-                </div>
-
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Destination</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    required
-                    placeholder="Depot B"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Vehicle Selection</label>
-                  <select
-                    className="form-control"
-                    value={selectedVehicle}
-                    onChange={(e) => setSelectedVehicle(e.target.value)}
-                    required
-                  >
-                    <option value="">Choose Vehicle...</option>
-                    {vehicles.map(v => (
-                      <option key={v.id} value={v.id}>
-                        {v.registration_number} - {v.name_model} ({v.status})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Driver Selection</label>
-                  <select
-                    className="form-control"
-                    value={selectedDriver}
-                    onChange={(e) => setSelectedDriver(e.target.value)}
-                    required
-                  >
-                    <option value="">Choose Driver...</option>
-                    {drivers.map(d => (
-                      <option key={d.id} value={d.id}>
-                        {d.name} ({d.status})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Cargo Weight (kg)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={cargoWeight}
-                    onChange={(e) => setCargoWeight(Number(e.target.value))}
-                    required
-                    min={1}
-                  />
-                </div>
-
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Planned Distance (km)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={plannedDistance}
-                    onChange={(e) => setPlannedDistance(Number(e.target.value))}
-                    required
-                    min={1}
-                  />
-                </div>
-
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Estimated Revenue ($)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={revenue}
-                    onChange={(e) => setRevenue(Number(e.target.value))}
-                    required
-                    min={0}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-                <button type="button" onClick={() => setShowCreateModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Create Draft
-                </button>
-              </div>
-            </form>
+      {completing && (
+        <Modal title={`Complete Trip ${completing.code}`} onClose={() => setCompleting(null)}
+          footer={<><button className="btn btn-ghost" onClick={() => setCompleting(null)}>Cancel</button><button className="btn btn-success" onClick={completeTrip} disabled={!finalOdo || !fuel}>Complete &amp; Cascade</button></>}>
+          <p className="text-muted mb-16" style={{ fontSize: 13 }}>{completing.vehicle_label} · {completing.driver_label} · {completing.source} → {completing.destination}</p>
+          <div className="field-row">
+            <div className="field"><label>Final Odometer (km)</label><input className="input" type="number" min={0} value={finalOdo || ''} onChange={(e) => setFinalOdo(+e.target.value)} placeholder="74032" /></div>
+            <div className="field"><label>Fuel Consumed (L)</label><input className="input" type="number" min={0} value={fuel || ''} onChange={(e) => setFuel(+e.target.value)} placeholder="42" /></div>
           </div>
-        </div>
+          <div className="alert alert-info"><IconCheck size={14} style={{ verticalAlign: -2, marginRight: 6 }} />On submit: vehicle odometer updates, a fuel log &amp; expense entry are created, and vehicle + driver return to Available.</div>
+        </Modal>
       )}
-
-      {/* Complete Modal */}
-      {showCompleteModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>Complete Trip routes</h3>
-            <p className="text-muted" style={{ fontSize: '12px' }}>Enter final parameters to update vehicle mileage and log fuel efficiency.</p>
-            {formError && <div className="alert alert-danger">{formError}</div>}
-
-            <form onSubmit={handleCompleteSubmit}>
-              <div className="form-group">
-                <label>Actual Distance Traveled (km)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={actualDistance}
-                  onChange={(e) => setActualDistance(Number(e.target.value))}
-                  required
-                  min={0.1}
-                  step="any"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Fuel Consumed (liters)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={fuelConsumed}
-                  onChange={(e) => setFuelConsumed(Number(e.target.value))}
-                  required
-                  min={0.1}
-                  step="any"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Final Odometer Reading (km - Optional)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={finalOdometer}
-                  onChange={(e) => setFinalOdometer(e.target.value)}
-                  placeholder="Leave empty to auto-increment by actual distance"
-                  min={0}
-                  step="any"
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-                <button type="button" onClick={() => setShowCompleteModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Mark Completed
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 export default TripsPage;

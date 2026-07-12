@@ -1,334 +1,103 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
-
-interface MaintenanceLog {
-  id: string;
-  vehicle_id: string;
-  service_type: string;
-  description: string | null;
-  cost: number;
-  odometer_at_service_km: number | null;
-  status: string;
-  opened_at: string;
-  closed_at: string | null;
-}
-
-interface Vehicle {
-  id: string;
-  registration_number: string;
-  name_model: string;
-  status: string;
-}
+import { useData } from '../lib/useData';
+import { demoMaintenance, demoVehicles } from '../lib/demo';
+import type { Maintenance, Vehicle } from '../lib/types';
+import { canEdit } from '../lib/roles';
+import { fmtNum, fmtDate } from '../lib/status';
+import { PageHead, Badge } from '../components/ui';
+import { IconAlert, IconCheck } from '../components/Icons';
 
 export const MaintenancePage: React.FC = () => {
-  const [logs, setLogs] = useState<MaintenanceLog[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const { hasRole } = useAuth();
-  const isManager = hasRole(['fleet_manager']);
+  const { user } = useAuth();
+  const editable = canEdit(user?.role, 'fleet');
+  const { data: logs, setData: setLogs } = useData<Maintenance[]>('/maintenance', demoMaintenance);
+  const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
+  const rows = Array.isArray(logs) ? logs : demoMaintenance;
+  const vehRows = Array.isArray(vehicles) ? vehicles : demoVehicles;
 
-  // Modal / Form state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showCloseModal, setShowCloseModal] = useState(false);
-  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
+  const [vehicle, setVehicle] = useState('');
+  const [service, setService] = useState('');
+  const [cost, setCost] = useState<number>(0);
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [status, setStatus] = useState<'Active' | 'Closed'>('Active');
 
-  // Form Fields
-  const [selectedVehicle, setSelectedVehicle] = useState('');
-  const [serviceType, setServiceType] = useState('');
-  const [description, setDescription] = useState('');
-  const [cost, setCost] = useState(0);
-  const [odometer, setOdometer] = useState(0);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  const fetchLogs = async () => {
-    setLoading(true);
-    try {
-      const logsRes = await client.get('/maintenance');
-      setLogs(logsRes.data);
-    } catch (err) {
-      setError('Failed to fetch maintenance database.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchVehicles = async () => {
-    try {
-      const vehRes = await client.get('/vehicles');
-      setVehicles(vehRes.data);
-    } catch (e) {
-      // Fail silently
-    }
-  };
-
-  useEffect(() => {
-    fetchLogs();
-    fetchVehicles();
-  }, []);
-
-  const openCreate = () => {
-    setSelectedVehicle('');
-    setServiceType('');
-    setDescription('');
-    setCost(0);
-    setOdometer(0);
-    setFormError(null);
-    setShowCreateModal(true);
-  };
-
-  const openClose = (logId: string) => {
-    setSelectedLogId(logId);
-    setCost(0);
-    setDescription('');
-    setFormError(null);
-    setShowCloseModal(true);
-  };
-
-  const handleCreateSubmit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-
-    const payload = {
-      vehicle_id: selectedVehicle,
-      service_type: serviceType,
-      description: description || null,
-      cost,
-      odometer_at_service_km: odometer || null,
-    };
-
-    try {
-      await client.post('/maintenance', payload);
-      setShowCreateModal(false);
-      fetchLogs();
-      fetchVehicles(); // update vehicle statuses in view
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || 'Failed to open maintenance log.');
-    }
+    if (!vehicle || !service) return;
+    const rec: Maintenance = { id: `m${Date.now()}`, vehicle_label: vehicle, service_type: service, cost, date, status };
+    setLogs([rec, ...rows]);
+    // cascade: Active -> vehicle In Shop
+    if (status === 'Active') setVehicles(vehRows.map((v) => (v.registration_number === vehicle ? { ...v, status: 'In Shop' } : v)));
+    setVehicle(''); setService(''); setCost(0);
+    try { await client.post('/maintenance', { vehicle_label: vehicle, service_type: service, cost, date, status }); } catch { /* offline demo */ }
   };
 
-  const handleCloseSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    const payload = {
-      cost,
-      description: description || null,
-    };
-
-    try {
-      await client.post(`/maintenance/${selectedLogId}/close`, payload);
-      setShowCloseModal(false);
-      fetchLogs();
-      fetchVehicles();
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || 'Failed to close maintenance log.');
-    }
+  const toggleClose = async (m: Maintenance) => {
+    const nextStatus = m.status === 'Active' ? 'Closed' : 'Active';
+    setLogs(rows.map((x) => (x.id === m.id ? { ...x, status: nextStatus } : x)));
+    // Closing -> vehicle Available (unless Retired); reopening -> In Shop
+    setVehicles(vehRows.map((v) => {
+      if (v.registration_number !== m.vehicle_label || v.status === 'Retired') return v;
+      return { ...v, status: nextStatus === 'Closed' ? 'Available' : 'In Shop' };
+    }));
+    try { await client.patch(`/maintenance/${m.id}`, { status: nextStatus }); } catch { /* offline demo */ }
   };
 
   return (
-    <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
-        <h2>Maintenance Workshop</h2>
-        {isManager && (
-          <button onClick={openCreate} className="btn btn-primary">
-            + Open Maintenance Log
-          </button>
-        )}
-      </div>
+    <>
+      <PageHead title="Maintenance" sub="Service records & vehicle shop status" />
+      {!editable && <div className="view-note"><IconAlert size={15} />View-only — a Fleet Manager logs and closes service records.</div>}
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      <div className="two-col">
+        <div className="card card-pad">
+          <div className="card-title mb-20">Log Service Record</div>
+          <form onSubmit={submit}>
+            <div className="field"><label>Vehicle</label>
+              <select className="select" value={vehicle} onChange={(e) => setVehicle(e.target.value)} disabled={!editable} required>
+                <option value="">Select vehicle…</option>
+                {vehRows.filter((v) => v.status !== 'Retired').map((v) => <option key={v.id} value={v.registration_number}>{v.registration_number}</option>)}
+              </select>
+            </div>
+            <div className="field"><label>Service Type</label><input className="input" value={service} onChange={(e) => setService(e.target.value)} placeholder="Oil Change" disabled={!editable} required /></div>
+            <div className="field-row">
+              <div className="field"><label>Cost (₹)</label><input className="input" type="number" min={0} value={cost || ''} onChange={(e) => setCost(+e.target.value)} placeholder="2500" disabled={!editable} /></div>
+              <div className="field"><label>Date</label><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={!editable} /></div>
+            </div>
+            <div className="field"><label>Status</label><select className="select" value={status} onChange={(e) => setStatus(e.target.value as 'Active' | 'Closed')} disabled={!editable}><option>Active</option><option>Closed</option></select></div>
+            <button className="btn btn-primary btn-block" disabled={!editable}>Save Record</button>
+          </form>
 
-      {loading ? (
-        <p>Loading workshop logs...</p>
-      ) : (
+          <div className="mt-24" style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+            <div className="flex items-center gap-8" style={{ marginBottom: 8 }}><span className="badge b-amber">Active</span> → <span className="badge b-amber">Vehicle: In Shop</span></div>
+            <div className="flex items-center gap-8"><span className="badge b-green">Closed</span> → <span className="badge b-green">Vehicle: Available</span> <span className="text-faint">(unless Retired)</span></div>
+            <div className="rule-note"><IconAlert size={14} />In Shop vehicles are removed from the dispatch pool.</div>
+          </div>
+        </div>
+
         <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Vehicle</th>
-                <th>Service Type</th>
-                <th>Cost</th>
-                <th>Odometer Reading</th>
-                <th>Opened Date</th>
-                <th>Closed Date</th>
-                <th>Status</th>
-                {isManager && <th>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((l) => (
-                <tr key={l.id}>
-                  <td style={{ fontWeight: 'bold' }}>
-                    {vehicles.find(v => v.id === l.vehicle_id)?.registration_number || l.vehicle_id.slice(0, 8)}
-                  </td>
-                  <td>
-                    <strong>{l.service_type}</strong>
-                    {l.description && <div style={{ fontSize: '11px', color: '#666' }}>{l.description}</div>}
-                  </td>
-                  <td>${l.cost.toLocaleString()}</td>
-                  <td>{l.odometer_at_service_km ? `${l.odometer_at_service_km.toLocaleString()} km` : '—'}</td>
-                  <td>{new Date(l.opened_at).toLocaleDateString()}</td>
-                  <td>{l.closed_at ? new Date(l.closed_at).toLocaleDateString() : '—'}</td>
-                  <td>
-                    <span className={`status-badge status-${l.status.toLowerCase()}`}>
-                      {l.status}
-                    </span>
-                  </td>
-                  {isManager && (
-                    <td>
-                      {l.status === 'Open' ? (
-                        <button onClick={() => openClose(l.id)} className="btn btn-success btn-sm">
-                          Close Service
-                        </button>
-                      ) : (
-                        <span className="text-muted" style={{ fontSize: '12px' }}>Completed</span>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {logs.length === 0 && (
-                <tr>
-                  <td colSpan={isManager ? 8 : 7} style={{ textAlign: 'center' }} className="text-muted">
-                    No workshop logs recorded.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Create Modal */}
-      {showCreateModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>Open Maintenance Record</h3>
-            <p className="text-muted" style={{ fontSize: '12px' }}>This will set the vehicle's status to 'In Shop' and remove it from selection pools (Rule 9).</p>
-            {formError && <div className="alert alert-danger">{formError}</div>}
-
-            <form onSubmit={handleCreateSubmit}>
-              <div className="form-group">
-                <label>Select Vehicle</label>
-                <select
-                  className="form-control"
-                  value={selectedVehicle}
-                  onChange={(e) => setSelectedVehicle(e.target.value)}
-                  required
-                >
-                  <option value="">Choose Vehicle...</option>
-                  {vehicles.filter(v => v.status !== 'Retired').map(v => (
-                    <option key={v.id} value={v.id}>
-                      {v.registration_number} - {v.name_model} ({v.status})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Service Type</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={serviceType}
-                  onChange={(e) => setServiceType(e.target.value)}
-                  required
-                  placeholder="e.g. Brake Pads Replacement, Oil Change"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Odometer at Service (km - Optional)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={odometer}
-                  onChange={(e) => setOdometer(Number(e.target.value))}
-                  min={0}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Estimated Cost ($)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={cost}
-                  onChange={(e) => setCost(Number(e.target.value))}
-                  min={0}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Details / Description</label>
-                <textarea
-                  className="form-control"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Service details..."
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-                <button type="button" onClick={() => setShowCreateModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Open Log
-                </button>
-              </div>
-            </form>
+          <div className="card-head"><h3>Service Log</h3></div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th>Vehicle</th><th>Service</th><th>Cost</th><th>Date</th><th>Status</th>{editable && <th></th>}</tr></thead>
+              <tbody>
+                {rows.map((m) => (
+                  <tr key={m.id}>
+                    <td className="mono td-strong">{m.vehicle_label}</td>
+                    <td>{m.service_type}</td>
+                    <td>₹{fmtNum(m.cost)}</td>
+                    <td className="text-muted">{fmtDate(m.date)}</td>
+                    <td><Badge status={m.status} /></td>
+                    {editable && <td><button className="btn btn-ghost btn-sm" onClick={() => toggleClose(m)}>{m.status === 'Active' ? <><IconCheck size={13} />Close</> : 'Reopen'}</button></td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      )}
-
-      {/* Close Modal */}
-      {showCloseModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <h3>Close Maintenance Log</h3>
-            <p className="text-muted" style={{ fontSize: '12px' }}>This restores the vehicle status to 'Available' unless it is 'Retired' (Rule 10).</p>
-            {formError && <div className="alert alert-danger">{formError}</div>}
-
-            <form onSubmit={handleCloseSubmit}>
-              <div className="form-group">
-                <label>Final Cost ($)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={cost}
-                  onChange={(e) => setCost(Number(e.target.value))}
-                  required
-                  min={0}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Service Description Update</label>
-                <textarea
-                  className="form-control"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Completed actions..."
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-                <button type="button" onClick={() => setShowCloseModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Close Log
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 };
 export default MaintenancePage;
