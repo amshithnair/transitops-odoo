@@ -610,35 +610,35 @@ Here are some key visual highlights of the TransitOps platform:
 
 ### DASHBOARD
 <!-- Drag and drop your Dashboard screenshot here or update the path below -->
-![Dashboard Placeholder](screenshots/dashboard.png)
+![DASHBOARD](screenshots/DASHBOARD.png)
 
 ### FLEET
 <!-- Drag and drop your Fleet screenshot here or update the path below -->
-![Fleet Placeholder](screenshots/fleet.png)
+![FLEET](screenshots/FLEET.png)
 
 ### DRIVERS
 <!-- Drag and drop your Drivers screenshot here or update the path below -->
-![Drivers Placeholder](screenshots/drivers.png)
+![DRIVERS](screenshots/DRIVERS.png)
 
 ### TRIP
 <!-- Drag and drop your Trip screenshot here or update the path below -->
-![Trip Placeholder](screenshots/trip.png)
+![TRIP](screenshots/TRIP.png)
 
 ### MAINTENANCE
 <!-- Drag and drop your Maintenance screenshot here or update the path below -->
-![Maintenance Placeholder](screenshots/maintenance.png)
+![MAINTENANCE](screenshots/MAINTENANCE.png)
 
 ### FUEL & EXPENSES
 <!-- Drag and drop your Fuel & Expenses screenshot here or update the path below -->
-![Fuel & Expenses Placeholder](screenshots/fuel-expenses.png)
+![FUEL & EXPENSES](screenshots/FUEL%20&%20EXPENSES.png)
 
 ### ANALYTICS
 <!-- Drag and drop your Analytics screenshot here or update the path below -->
-![Analytics Placeholder](screenshots/analytics.png)
+![ANALYTICS](screenshots/ANALYTICS.png)
 
 ### SETTINGS
 <!-- Drag and drop your Settings screenshot here or update the path below -->
-![Settings Placeholder](screenshots/settings.png)
+![SETTINGS](screenshots/SETTINGS.png)
 
 <br />
 
