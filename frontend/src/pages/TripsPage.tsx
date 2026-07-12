@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../lib/useData';
@@ -15,6 +16,7 @@ const LIFECYCLE = ['Draft', 'Dispatched', 'Completed', 'Cancelled'];
 export const TripsPage: React.FC = () => {
   const { user } = useAuth();
   const editable = canEdit(user?.role, 'trips');
+  const [listRef] = useAutoAnimate<HTMLDivElement>();
 
   const { data: trips, setData: setTrips } = useData<Trip[]>('/trips', demoTrips);
   const { data: vehicles, setData: setVehicles } = useData<Vehicle[]>('/vehicles', demoVehicles);
@@ -161,7 +163,7 @@ export const TripsPage: React.FC = () => {
         </div>
 
         {/* RIGHT: live board */}
-        <div className="card card-pad">
+        <div className="card card-pad" ref={listRef}>
           <div className="card-title mb-20">Live Board</div>
           {tripRows.map((t) => (
             <div className="live-card" key={t.id}>

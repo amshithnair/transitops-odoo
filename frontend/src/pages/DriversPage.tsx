@@ -22,6 +22,7 @@ export const DriversPage: React.FC = () => {
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState<Driver | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Driver | null>(null);
   const [override, setOverride] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -53,8 +54,8 @@ export const DriversPage: React.FC = () => {
   };
 
   const remove = async (d: Driver) => {
-    if (!confirm(`Remove driver ${d.name}?`)) return;
     try { await client.delete(`/drivers/${d.id}`); reload(); } catch { setData(rows.filter((x) => x.id !== d.id)); }
+    setDeleteTarget(null);
   };
 
   const selDriver = rows.find((d) => d.id === selected);
@@ -86,7 +87,7 @@ export const DriversPage: React.FC = () => {
               <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
               {editable && <th></th>}
             </tr></thead>
-            <tbody>
+            <tbody key={q} className="table-animated">
               {sorted.map((d) => {
                 const exp = expiryInfo(d.license_expiry);
                 return (
@@ -99,7 +100,7 @@ export const DriversPage: React.FC = () => {
                     <td>{d.trip_completion_pct ?? '—'}%</td>
                     <td><ColorBadge color={safetyColor(d.safety_score)}>{d.safety_score}</ColorBadge></td>
                     <td><Badge status={d.status} /></td>
-                    {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setErr(null); setOverride(false); setForm(d); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={(e) => { e.stopPropagation(); remove(d); }}><IconTrash size={15} /></button></div></td>}
+                    {editable && <td><div className="flex gap-8"><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setErr(null); setOverride(false); setForm(d); }}><IconEdit size={15} /></button><button className="icon-btn" onClick={(e) => { e.stopPropagation(); setDeleteTarget(d); }}><IconTrash size={15} /></button></div></td>}
                   </tr>
                 );
               })}
@@ -146,6 +147,22 @@ export const DriversPage: React.FC = () => {
             </div>
             <label className="checkbox"><input type="checkbox" checked={override} onChange={(e) => setOverride(e.target.checked)} />Override — allow save with expired license</label>
           </form>
+        </Modal>
+      )}
+      {deleteTarget && (
+        <Modal
+          title="Remove Driver"
+          variant="confirm"
+          icon={<IconTrash size={22} />}
+          onClose={() => setDeleteTarget(null)}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => remove(deleteTarget)}>Remove</button>
+            </>
+          }
+        >
+          Are you sure you want to remove <strong>{deleteTarget.name}</strong>? This action cannot be undone.
         </Modal>
       )}
     </>

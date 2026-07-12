@@ -96,7 +96,7 @@ export const MaintenancePage: React.FC = () => {
                 <Th label="Status" arrow={arrow('status')} onClick={() => toggle('status')} />
                 {editable && <th></th>}
               </tr></thead>
-              <tbody>
+              <tbody className="table-animated">
                 {sorted.map((m) => (
                   <tr key={m.id}>
                     <td className="mono td-strong">{m.vehicle_label}</td>
