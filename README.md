@@ -7,6 +7,12 @@
 
   <br /><br />
 
+  <!-- Hero Image -->
+  <!-- Drag and drop your Login screenshot here or update the path below -->
+  <img src="screenshots/login.png" alt="TransitOps Login" width="800" />
+
+  <br /><br />
+
   <!-- Project Title -->
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=36&duration=3000&pause=1000&color=4FC3F7&center=true&vCenter=true&width=500&lines=%F0%9F%9A%9B+TransitOps" />
@@ -602,29 +608,37 @@ Interactive docs at **[localhost:8000/docs](http://localhost:8000/docs)** (Swagg
 
 Here are some key visual highlights of the TransitOps platform:
 
-### 📊 Dashboard
+### DASHBOARD
 <!-- Drag and drop your Dashboard screenshot here or update the path below -->
-![Dashboard Placeholder](https://via.placeholder.com/1200x600/1e1e24/ffffff?text=TransitOps+Dashboard+Screenshot)
+![Dashboard Placeholder](screenshots/dashboard.png)
 
-**Description:** The centralized command center. This view displays real-time KPI cards such as *Active Vehicles*, *Fleet Utilization*, and *Drivers On Duty*. It provides a clean, role-scoped summary of operations for Fleet Managers, Drivers, Safety Officers, and Financial Analysts. It also supports region-based, type-based, and status-based filtering.
+### FLEET
+<!-- Drag and drop your Fleet screenshot here or update the path below -->
+![Fleet Placeholder](screenshots/fleet.png)
 
-### 🚛 Asset Inventory
-<!-- Drag and drop your Asset Inventory screenshot here or update the path below -->
-![Asset Inventory Placeholder](https://via.placeholder.com/1200x600/1e1e24/ffffff?text=Asset+Inventory+Screenshot)
+### DRIVERS
+<!-- Drag and drop your Drivers screenshot here or update the path below -->
+![Drivers Placeholder](screenshots/drivers.png)
 
-**Description:** The digital registry for all fleet assets. It allows Fleet Managers to perform full CRUD operations on trucks, vans, and minis, tracking key parameters like odometer readings, maximum load capacities, acquisition costs, and active regions. It also displays live operational statuses (Available, On Trip, In Shop, Retired) indicating where each asset is currently allocated.
+### TRIP
+<!-- Drag and drop your Trip screenshot here or update the path below -->
+![Trip Placeholder](screenshots/trip.png)
 
-### 📅 Booking Calendar
-<!-- Drag and drop your Booking Calendar screenshot here or update the path below -->
-![Booking Calendar Placeholder](https://via.placeholder.com/1200x600/1e1e24/ffffff?text=Booking+Calendar+Screenshot)
+### MAINTENANCE
+<!-- Drag and drop your Maintenance screenshot here or update the path below -->
+![Maintenance Placeholder](screenshots/maintenance.png)
 
-**Description:** The primary interface for dispatch, scheduling, and scheduling management. This view displays trip allocations, active statuses (Draft, Dispatched, Completed, Cancelled), and assigned drivers/vehicles. It allows managers to visually coordinate schedules, track ETAs, and avoid dispatching conflicts.
+### FUEL & EXPENSES
+<!-- Drag and drop your Fuel & Expenses screenshot here or update the path below -->
+![Fuel & Expenses Placeholder](screenshots/fuel-expenses.png)
 
-### 📈 Analytics
+### ANALYTICS
 <!-- Drag and drop your Analytics screenshot here or update the path below -->
-![Analytics Placeholder](https://via.placeholder.com/1200x600/1e1e24/ffffff?text=Analytics+Screenshot)
+![Analytics Placeholder](screenshots/analytics.png)
 
-**Description:** The reporting interface compiling operational cost trends, vehicle ROI, fuel efficiency (km/L), and fleet utilization rates. Powered by Recharts, it features interactive visualizations and direct CSV exporting for fleet performance auditing.
+### SETTINGS
+<!-- Drag and drop your Settings screenshot here or update the path below -->
+![Settings Placeholder](screenshots/settings.png)
 
 <br />
 
