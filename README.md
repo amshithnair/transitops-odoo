@@ -1,7 +1,5 @@
 <div align="center">
 
-  <!-- Odoo Hackathon Banner -->
-  <img src="https://www.odoo.com/web/image/website/1/logo/odoo?unique=bdc4a11" alt="Odoo Logo" height="45" />
   <br />
   <sub>Hackathon 2026 · Smart Transport Operations Challenge</sub>
 
@@ -9,7 +7,7 @@
 
   <!-- Hero Image -->
   <!-- Drag and drop your Login screenshot here or update the path below -->
-  <img src="screenshots/login.png" alt="TransitOps Login" width="800" />
+  <img src="https://drive.google.com/file/d/1xFPYK3ENI85OK2VwR4XHDZFWNkL_SIKA/view?usp=sharing" alt="TransitOps Login" width="800" />
 
   <br /><br />
 
