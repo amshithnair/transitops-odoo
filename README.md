@@ -82,7 +82,7 @@
 - [Demo Credentials](#-demo-credentials)
 - [Running Tests](#-running-tests)
 - [API Documentation](#-api-documentation)
-- [Screenshots](#-screenshots)
+
 - [Security](#-security)
 - [Team](#-team)
 - [License](#-license)
@@ -601,44 +601,6 @@ Interactive docs at **[localhost:8000/docs](http://localhost:8000/docs)** (Swagg
 | **Reports** | `GET /reports/fuel-efficiency` · `/utilization` · `/cost` · `/roi` | Analytics + CSV |
 | **⚡ Passport** | `GET /vehicles/{id}/passport` | Digital Vehicle Passport |
 | **⚡ Predictive** | `GET /maintenance/forecast/{id}` | Maintenance forecasting |
-
-<br />
-
-## 📸 Screenshots
-
-Here are some key visual highlights of the TransitOps platform:
-
-### DASHBOARD
-<!-- Drag and drop your Dashboard screenshot here or update the path below -->
-![DASHBOARD](screenshots/DASHBOARD.png)
-
-### FLEET
-<!-- Drag and drop your Fleet screenshot here or update the path below -->
-![FLEET](screenshots/FLEET.png)
-
-### DRIVERS
-<!-- Drag and drop your Drivers screenshot here or update the path below -->
-![DRIVERS](screenshots/DRIVERS.png)
-
-### TRIP
-<!-- Drag and drop your Trip screenshot here or update the path below -->
-![TRIP](screenshots/TRIP.png)
-
-### MAINTENANCE
-<!-- Drag and drop your Maintenance screenshot here or update the path below -->
-![MAINTENANCE](screenshots/MAINTENANCE.png)
-
-### FUEL & EXPENSES
-<!-- Drag and drop your Fuel & Expenses screenshot here or update the path below -->
-![FUEL & EXPENSES](screenshots/FUEL%20&%20EXPENSES.png)
-
-### ANALYTICS
-<!-- Drag and drop your Analytics screenshot here or update the path below -->
-![ANALYTICS](screenshots/ANALYTICS.jpeg)
-
-### SETTINGS
-<!-- Drag and drop your Settings screenshot here or update the path below -->
-![SETTINGS](screenshots/SETTINGS.png)
 
 <br />
 
