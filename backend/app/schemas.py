@@ -18,9 +18,9 @@ from app.models import (
 # ──────────────────────────── Auth ────────────────────────────
 
 class UserRegister(BaseModel):
-    name: str = Field(..., min_length=2)
+    name: str = Field(..., min_length=1)
     email: EmailStr
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=6)
     role: UserRole = UserRole.driver
 
 
@@ -70,7 +70,7 @@ class VerifyOTPResponse(BaseModel):
 class ResetPasswordRequest(BaseModel):
     email: EmailStr = Field(..., examples=["user@example.com"])
     reset_code: str = Field(..., examples=["temp-code-xyz"])
-    new_password: str = Field(..., min_length=8, examples=["NewPass@123"])
+    new_password: str = Field(..., min_length=6, examples=["NewPass@123"])
 
 
 class MessageResponse(BaseModel):
@@ -81,7 +81,7 @@ class MessageResponse(BaseModel):
 class UserCreateByManager(BaseModel):
     name: str = Field(..., min_length=1, examples=["Demo Driver 1"])
     email: EmailStr = Field(..., examples=["demo-driver-1@transitops.local"])
-    password: str = Field(..., min_length=8, examples=["Demo@123"])
+    password: str = Field(..., min_length=6, examples=["Demo@123"])
     role: UserRole = Field(..., examples=[UserRole.driver])
 
 

@@ -8,7 +8,6 @@ export type Section = 'fleet' | 'drivers' | 'trips' | 'fuel' | 'analytics';
 export type Access = 'crud' | 'view' | 'none';
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  superadmin: 'Super Admin',
   fleet_manager: 'Fleet Manager',
   driver: 'Dispatcher',
   safety_officer: 'Safety Officer',
@@ -16,7 +15,6 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export const ROLE_COLORS: Record<UserRole, string> = {
-  superadmin: 'var(--red)',
   fleet_manager: 'var(--accent)',
   driver: 'var(--blue)',
   safety_officer: 'var(--green)',
@@ -24,19 +22,17 @@ export const ROLE_COLORS: Record<UserRole, string> = {
 };
 
 export const ROLE_SCOPE: Record<UserRole, string> = {
-  superadmin: 'Full access — every module & action',
-  fleet_manager: 'Fleet, Drivers, Maintenance, Analytics',
+  fleet_manager: 'Full access — every module & action',
   driver: 'Dashboard, Trips',
   safety_officer: 'Drivers, Compliance',
   financial_analyst: 'Fuel & Expenses, Analytics',
 };
 
-export const ALL_ROLES: UserRole[] = ['superadmin', 'fleet_manager', 'driver', 'safety_officer', 'financial_analyst'];
+export const ALL_ROLES: UserRole[] = ['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'];
 
 // RBAC matrix — rows=role, cols=section. Spec Section 6 + Super Admin (full CRUD everywhere).
 export const RBAC: Record<UserRole, Record<Section, Access>> = {
-  superadmin:       { fleet: 'crud', drivers: 'crud', trips: 'crud', fuel: 'crud', analytics: 'crud' },
-  fleet_manager:    { fleet: 'crud', drivers: 'crud', trips: 'none', fuel: 'none', analytics: 'crud' },
+  fleet_manager:    { fleet: 'crud', drivers: 'crud', trips: 'crud', fuel: 'crud', analytics: 'crud' },
   driver:           { fleet: 'view', drivers: 'none', trips: 'crud', fuel: 'none', analytics: 'none' },
   safety_officer:   { fleet: 'none', drivers: 'crud', trips: 'view', fuel: 'none', analytics: 'none' },
   financial_analyst:{ fleet: 'view', drivers: 'none', trips: 'none', fuel: 'crud', analytics: 'crud' },

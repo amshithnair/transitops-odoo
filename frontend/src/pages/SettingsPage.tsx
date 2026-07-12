@@ -3,15 +3,25 @@ import { PageHead } from '../components/ui';
 import { ALL_ROLES, RBAC, ROLE_LABELS, SECTION_LABELS } from '../lib/roles';
 import { getActivity, clearActivity, type ActivityEvent } from '../lib/activity';
 import { fmtDate } from '../lib/status';
-import { IconCheck, IconActivity, IconTrash } from '../components/Icons';
+import { IconCheck, IconActivity, IconTrash, IconUsers } from '../components/Icons';
+import { useAuth } from '../context/AuthContext';
+import client from '../api/client';
 
 export const SettingsPage: React.FC = () => {
+  const { user } = useAuth();
+  const role = user?.role || 'driver';
   const [depot, setDepot] = useState('Gandhinagar Depot #24');
   const [currency, setCurrency] = useState('INR (₹)');
   const [unit, setUnit] = useState('Kilometers');
   const [saved, setSaved] = useState(false);
   const [log, setLog] = useState<ActivityEvent[]>([]);
   const [entityFilter, setEntityFilter] = useState('');
+
+  // User creation state
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState('driver');
 
   useEffect(() => {
     const refresh = () => setLog(getActivity());
@@ -60,10 +70,10 @@ export const SettingsPage: React.FC = () => {
                 <tr><th>Role</th>{SECTION_LABELS.map((s) => <th key={s.key}>{s.label}</th>)}</tr>
               </thead>
               <tbody>
-                {ALL_ROLES.map((role) => (
-                  <tr key={role}>
-                    <td>{ROLE_LABELS[role]}</td>
-                    {SECTION_LABELS.map((s) => <td key={s.key}>{mark(RBAC[role][s.key])}</td>)}
+                {ALL_ROLES.map((r) => (
+                  <tr key={r}>
+                    <td>{ROLE_LABELS[r]}</td>
+                    {SECTION_LABELS.map((s) => <td key={s.key}>{mark(RBAC[r][s.key])}</td>)}
                   </tr>
                 ))}
               </tbody>
@@ -98,6 +108,39 @@ export const SettingsPage: React.FC = () => {
               {filteredLog.length === 0 && <tr><td colSpan={6} className="empty-row">No activity yet — dispatch a trip or log maintenance to see events here.</td></tr>}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="card mt-16">
+        <div className="card-head">
+          <h3><IconUsers size={13} style={{ verticalAlign: -2, marginRight: 6 }} />User Management (Fleet Manager)</h3>
+        </div>
+        <div className="card-pad" style={{ maxWidth: 600 }}>
+          {role !== 'fleet_manager' ? (
+            <div className="alert alert-warning">Only Fleet Managers can create new users.</div>
+          ) : (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                await client.post('/users', { name: newUserName, email: newUserEmail, password: newUserPassword, role: newUserRole });
+                alert('User created successfully!');
+                setNewUserName(''); setNewUserEmail(''); setNewUserPassword('');
+              } catch (err: any) {
+                alert(err.response?.data?.detail || 'Failed to create user');
+              }
+            }}>
+              <div className="field"><label>Name</label><input className="input" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} required /></div>
+              <div className="field"><label>Email</label><input className="input" type="email" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} required /></div>
+              <div className="field"><label>Password</label><input className="input" type="password" value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} required placeholder="Min 8 chars, 1 uppercase, 1 digit" /></div>
+              <div className="field">
+                <label>Role</label>
+                <select className="select" value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)}>
+                  {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r as keyof typeof ROLE_LABELS]}</option>)}
+                </select>
+              </div>
+              <button className="btn btn-primary">Create User</button>
+            </form>
+          )}
         </div>
       </div>
     </>
