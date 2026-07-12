@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, type UserRole, type User } from '../context/AuthContext';
 import client from '../api/client';
 import { ALL_ROLES, ROLE_LABELS, ROLE_COLORS, ROLE_SCOPE } from '../lib/roles';
 
 const DEMO: Record<UserRole, { email: string; pass: string; name: string }> = {
-  superadmin:        { email: 'admin@transitops.com',    pass: 'admin123',   name: 'Root Admin' },
+
   fleet_manager:     { email: 'fleet@transitops.com',   pass: 'Fleet@123',   name: 'Alice Fleet' },
   driver:            { email: 'driver@transitops.com', pass: 'Driver@123',  name: 'Bob Driver' },
   safety_officer:    { email: 'safety@transitops.com',   pass: 'Safety@123',  name: 'Carol Safety' },
@@ -118,7 +118,7 @@ export const LoginPage: React.FC = () => {
 
           <div className="flex items-center" style={{ justifyContent: 'space-between', margin: '4px 0 18px' }}>
             <label className="checkbox"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />Remember me</label>
-            <span className="link">Forgot password?</span>
+            <Link to="/forgot-password" className="link">Forgot password?</Link>
           </div>
 
           <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={submitting || locked}>

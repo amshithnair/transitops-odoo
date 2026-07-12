@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useData } from '../lib/useData';
 import { demoKpis, demoTrips, demoStatusBreakdown } from '../lib/demo';
 import type { KPIs, Trip } from '../lib/types';
@@ -16,6 +17,7 @@ const KPI_DEFS = (k: KPIs) => [
 ];
 
 export const DashboardPage: React.FC = () => {
+  const { user } = useAuth();
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
   const [region, setRegion] = useState('');
@@ -29,63 +31,86 @@ export const DashboardPage: React.FC = () => {
   const { data: trips } = useData<Trip[]>('/trips', demoTrips);
 
   const recent = (Array.isArray(trips) ? trips : demoTrips).slice(0, 6);
+  const role = user?.role || 'fleet_manager';
+
+  // Role-specific KPI filtering
+  const getKpis = (k: KPIs) => {
+    const all = KPI_DEFS(k);
+    if (role === 'driver') return all.filter(d => ['Active Trips', 'Pending Trips'].includes(d.label));
+    if (role === 'safety_officer') return all.filter(d => ['In Maintenance', 'Active Vehicles', 'Fleet Utilization'].includes(d.label));
+    if (role === 'financial_analyst') return all.filter(d => ['Fleet Utilization', 'Active Trips'].includes(d.label));
+    return all;
+  };
+
+  const roleTitle = {
+    fleet_manager: 'Fleet Manager Dashboard',
+    driver: 'Driver Dashboard',
+    safety_officer: 'Safety & Compliance Dashboard',
+    financial_analyst: 'Financial Dashboard'
+  }[role] || 'Dashboard';
 
   return (
     <>
-      <PageHead title="Dashboard" sub="Fleet operations at a glance" />
+      <PageHead title={roleTitle} sub={`Welcome back, ${user?.name || 'User'}`} />
 
-      <div className="filters">
-        <div className="filter-group">
-          <label>Vehicle Type</label>
-          <select className="select" value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="">All</option><option>Van</option><option>Truck</option><option>Mini</option>
-          </select>
+      {role === 'fleet_manager' && (
+        <div className="filters">
+          <div className="filter-group">
+            <label>Vehicle Type</label>
+            <select className="select" value={type} onChange={(e) => setType(e.target.value)}>
+              <option value="">All</option><option>Van</option><option>Truck</option><option>Mini</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Status</label>
+            <select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="">All</option><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Region</label>
+            <select className="select" value={region} onChange={(e) => setRegion(e.target.value)}>
+              <option value="">All</option><option>North</option><option>South</option><option>East</option><option>West</option>
+            </select>
+          </div>
         </div>
-        <div className="filter-group">
-          <label>Status</label>
-          <select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">All</option><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option>
-          </select>
-        </div>
-        <div className="filter-group">
-          <label>Region</label>
-          <select className="select" value={region} onChange={(e) => setRegion(e.target.value)}>
-            <option value="">All</option><option>North</option><option>South</option><option>East</option><option>West</option>
-          </select>
-        </div>
-      </div>
+      )}
 
       <div className="kpi-row" style={{ marginBottom: 18 }}>
-        {KPI_DEFS(kpis).map((d) => (
+        {getKpis(kpis).map((d) => (
           <Kpi key={d.label} label={d.label} value={d.value} sub={d.sub} color={d.color} icon={d.icon} tip={d.tip} />
         ))}
       </div>
 
       <div className="two-col">
-        <div className="card">
-          <div className="card-head"><h3>Recent Trips</h3></div>
-          <div className="table-wrap">
-            <table className="table">
-              <thead><tr><th>Trip</th><th>Vehicle</th><th>Driver</th><th>Status</th><th>ETA</th></tr></thead>
-              <tbody>
-                {recent.map((t) => (
-                  <tr key={t.id}>
-                    <td className="mono">{t.code || t.id}</td>
-                    <td>{t.vehicle_label || '—'}</td>
-                    <td>{t.driver_label || '—'}</td>
-                    <td><Badge status={t.status} /></td>
-                    <td className="text-muted">{t.eta || t.note || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {['fleet_manager', 'driver', 'financial_analyst'].includes(role) && (
+          <div className="card">
+            <div className="card-head"><h3>{role === 'driver' ? 'My Recent Trips' : 'Recent Trips'}</h3></div>
+            <div className="table-wrap">
+              <table className="table">
+                <thead><tr><th>Trip</th><th>Vehicle</th><th>Driver</th><th>Status</th><th>ETA</th></tr></thead>
+                <tbody>
+                  {recent.map((t) => (
+                    <tr key={t.id}>
+                      <td className="mono">{t.code || t.id}</td>
+                      <td>{t.vehicle_label || '—'}</td>
+                      <td>{t.driver_label || '—'}</td>
+                      <td><Badge status={t.status} /></td>
+                      <td className="text-muted">{t.eta || t.note || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="card card-pad">
-          <div className="card-title mb-20">Vehicle Status</div>
-          <StatBars data={demoStatusBreakdown} />
-        </div>
+        {['fleet_manager', 'safety_officer'].includes(role) && (
+          <div className="card card-pad">
+            <div className="card-title mb-20">Vehicle Status Breakdown</div>
+            <StatBars data={demoStatusBreakdown} />
+          </div>
+        )}
       </div>
     </>
   );
