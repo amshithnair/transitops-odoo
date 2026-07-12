@@ -84,6 +84,25 @@ def get_vehicle_passport(
     # Let's do newest first
     timeline.sort(key=lambda x: x.timestamp, reverse=True)
 
+    # Add document expiry reminders
+    from datetime import datetime, date as date_type, time
+    for expiry_field, doc_name in [
+        ("insurance_expiry", "Insurance"),
+        ("rc_expiry", "RC"),
+        ("puc_expiry", "PUC"),
+        ("fitness_expiry", "Fitness Document")
+    ]:
+        val = getattr(vehicle, expiry_field, None)
+        if val:
+            dt = datetime.combine(val, time.min)
+            is_expired = val < date_type.today()
+            timeline.insert(0, ComplianceEvent(
+                timestamp=dt,
+                event=f"{doc_name} Expiry: {val} " + ("(EXPIRED)" if is_expired else "(Upcoming)"),
+                status_before="Valid" if not is_expired else "Expired",
+                status_after="Expired"
+            ))
+
     # Compute Summary Stats
     completed_trips = [t for t in trips if t.status == TripStatus.Completed]
     total_trips = len(completed_trips)

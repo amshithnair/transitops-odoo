@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 import { useData } from '../lib/useData';
 import { DEFAULT_KPIS } from '../lib/types';
-import type { KPIs, Trip } from '../lib/types';
+import type { KPIs, Trip, Vehicle } from '../lib/types';
 import { PageHead, Kpi, StatBars, Badge } from '../components/ui';
 import { IconTruck, IconRoute, IconUsers, IconChart, IconWrench, IconClock } from '../components/Icons';
 
@@ -29,6 +30,7 @@ export const DashboardPage: React.FC = () => {
 
   const { data: kpis } = useData<KPIs>('/dashboard/kpis', DEFAULT_KPIS, params);
   const { data: trips } = useData<Trip[]>('/trips', []);
+  const { data: vehicles } = useData<Vehicle[]>('/vehicles', []);
 
   const recent = (Array.isArray(trips) ? trips : []).slice(0, 6);
   const role = user?.role || 'fleet_manager';
@@ -93,7 +95,15 @@ export const DashboardPage: React.FC = () => {
                   {recent.map((t) => (
                     <tr key={t.id}>
                       <td className="mono">{t.code || t.id}</td>
-                      <td>{t.vehicle_label || '—'}</td>
+                      <td>
+                        {t.vehicle_id ? (
+                          <Link to={`/vehicles/${t.vehicle_id}/passport`} className="link">
+                            {t.vehicle_label || '—'}
+                          </Link>
+                        ) : (
+                          t.vehicle_label || '—'
+                        )}
+                      </td>
                       <td>{t.driver_label || '—'}</td>
                       <td><Badge status={t.status} /></td>
                       <td className="text-muted">{t.eta || t.note || '—'}</td>
@@ -109,6 +119,42 @@ export const DashboardPage: React.FC = () => {
           <div className="card card-pad">
             <div className="card-title mb-20">Vehicle Status Breakdown</div>
             <StatBars data={[]} />
+          </div>
+        )}
+
+        {role === 'safety_officer' && (
+          <div className="card card-pad" style={{ gridColumn: 'span 2' }}>
+            <h3 style={{ marginBottom: 16 }}>Compliance Checklists & Fleet Passports</h3>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Vehicle</th>
+                    <th>Region</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vehicles.map((v) => (
+                    <tr key={v.id}>
+                      <td>
+                        <strong>{v.registration_number}</strong>
+                        <div className="text-muted" style={{ fontSize: 11 }}>{v.name_model}</div>
+                      </td>
+                      <td>{v.region || '—'}</td>
+                      <td><Badge status={v.status} /></td>
+                      <td>
+                        <Link to={`/vehicles/${v.id}/passport`} className="btn btn-ghost btn-sm">
+                          View Passport
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                  {vehicles.length === 0 && <tr><td colSpan={4} className="empty-row">No vehicles found.</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

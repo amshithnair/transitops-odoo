@@ -105,6 +105,11 @@ class VehicleCreate(BaseModel):
     acquisition_cost: float = Field(0.0, ge=0, examples=[45000.0])
     status: VehicleStatus = Field(VehicleStatus.Available, examples=[VehicleStatus.Available])
     region: Optional[str] = Field(None, examples=["North"])
+    documents: Optional[List[dict]] = Field(None, examples=[[{"id": "doc1", "label": "RC", "filename": "rc.pdf", "dataUrl": "data:..."}]])
+    insurance_expiry: Optional[date_type] = Field(None, examples=["2026-12-31"])
+    rc_expiry: Optional[date_type] = Field(None, examples=["2026-12-31"])
+    puc_expiry: Optional[date_type] = Field(None, examples=["2026-12-31"])
+    fitness_expiry: Optional[date_type] = Field(None, examples=["2026-12-31"])
 
 
 class VehicleUpdate(BaseModel):
@@ -116,6 +121,11 @@ class VehicleUpdate(BaseModel):
     acquisition_cost: Optional[float] = Field(None, ge=0, examples=[45000.0])
     status: Optional[VehicleStatus] = Field(None, examples=[VehicleStatus.Available])
     region: Optional[str] = Field(None, examples=["North"])
+    documents: Optional[List[dict]] = Field(None)
+    insurance_expiry: Optional[date_type] = Field(None)
+    rc_expiry: Optional[date_type] = Field(None)
+    puc_expiry: Optional[date_type] = Field(None)
+    fitness_expiry: Optional[date_type] = Field(None)
 
 
 class VehicleResponse(BaseModel):
@@ -129,6 +139,11 @@ class VehicleResponse(BaseModel):
     status: VehicleStatus
     region: Optional[str]
     created_at: datetime
+    documents: Optional[List[dict]] = []
+    insurance_expiry: Optional[date_type] = None
+    rc_expiry: Optional[date_type] = None
+    puc_expiry: Optional[date_type] = None
+    fitness_expiry: Optional[date_type] = None
 
     model_config = {"from_attributes": True}
 
@@ -158,7 +173,7 @@ class DriverUpdate(BaseModel):
 
 class DriverResponse(BaseModel):
     id: str
-    user_id: Optional[str]
+    user_id: Optional[str] = None
     name: str
     license_number: str
     license_category: str

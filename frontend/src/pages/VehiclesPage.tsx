@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useData, filterBy } from '../lib/useData';
@@ -82,7 +83,11 @@ export const VehiclesPage: React.FC = () => {
             <tbody>
               {sorted.map((v) => (
                 <tr key={v.id}>
-                  <td className="mono td-strong">{v.registration_number}</td>
+                  <td className="mono td-strong">
+                    <Link to={`/vehicles/${v.id}/passport`} className="link">
+                      {v.registration_number}
+                    </Link>
+                  </td>
                   <td>{v.name_model}</td>
                   <td>{v.type}</td>
                   <td>{fmtNum(v.max_load_capacity_kg)} kg</td>
